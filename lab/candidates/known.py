@@ -48,6 +48,77 @@ TEMPLATES: dict[tuple[str, str], dict] = {
         "tp_twin": "an added .install that is present in the tree and not declared still fires",
         "reproducers": ["benign/fp-2026-10-16"],
     },
+    ("H001", "local_skip_only"): {
+        "id": "H001-local-skip",
+        "lever": "evidence_guard",
+        "rationale": (
+            "A local source is a file committed beside the recipe; the AUR "
+            "git tree is its integrity record, so a SKIP over it has nothing "
+            "to verify upstream. Only remote and dynamic sources need a hash."
+        ),
+        "edits": [
+            (
+                "src/trustsight/differ/_sources.py",
+                """\
+def _recipe_skip_justification(recipe_text: str) -> str:
+""",
+                """\
+_SUM_ARRAY_RE = re.compile(
+    r"(?:md5|sha1|sha224|sha256|sha384|sha512|b2)sums(_.*)?$"
+)
+_URL_ENTRY_RE = re.compile(
+    r"^[A-Za-z][A-Za-z0-9+.-]*://|^[A-Za-z][A-Za-z0-9+.-]*::"
+)
+
+
+def _all_skips_are_local(recipe) -> bool:
+    # Every SKIP must cover a file committed beside the recipe.
+    seen = False
+    for name, sums in recipe.arrays.items():
+        match = _SUM_ARRAY_RE.match(name)
+        if not match:
+            continue
+        sources = recipe.arrays.get("source" + (match.group(1) or ""), ())
+        for index, checksum in enumerate(sums):
+            if str(checksum).strip().strip("'").strip('"') != "SKIP":
+                continue
+            seen = True
+            source = sources[index] if index < len(sources) else None
+            if source is None:
+                return False
+            target = str(source).strip().split("::", 1)[-1]
+            target = target.strip().strip("'").strip('"')
+            if _URL_ENTRY_RE.match(target) or target.startswith("/"):
+                return False
+            if ".." in target.split("/") or "$" in target:
+                return False
+    return seen
+
+
+def _recipe_skip_justification(recipe_text: str) -> str:
+""",
+            ),
+            (
+                "src/trustsight/differ/_sources.py",
+                """\
+    keys = list(recipe.arrays) + list(recipe.scalars)
+    if any(str(k).upper().startswith("DKMS") for k in keys):
+        return "vcs source"
+    return ""
+""",
+                """\
+    keys = list(recipe.arrays) + list(recipe.scalars)
+    if any(str(k).upper().startswith("DKMS") for k in keys):
+        return "vcs source"
+    if _all_skips_are_local(recipe):
+        return "local file"
+    return ""
+""",
+            ),
+        ],
+        "tp_twin": "a remote source set to SKIP with no signature still fires H001",
+        "reproducers": [],
+    },
     ("NOVELTY", "misclassified=true"): {
         "id": "NOVELTY-url-metadata",
         "lever": "normalization",
@@ -136,10 +207,19 @@ def render(template: dict, trustsight_root: Path) -> Candidate:
     )
 
 
+#: The miner names the same shape with a few equivalent predicates.
+ALIASES = {
+    ("H001", "local_skip>0"): ("H001", "local_skip_only"),
+    ("H001", "remote_skip=0 and local_skip>0"): ("H001", "local_skip_only"),
+}
+
+
 def for_predicate(
     rule_id: str, predicate: str, trustsight_root: Path
 ) -> Candidate | None:
-    template = TEMPLATES.get((rule_id, predicate))
+    key = (rule_id, predicate)
+    key = ALIASES.get(key, key)
+    template = TEMPLATES.get(key)
     if template is None:
         return None
     candidate = render(template, trustsight_root)

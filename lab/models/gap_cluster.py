@@ -51,6 +51,55 @@ CAPABILITIES = {
 
 _FILE_KIND = re.compile(r"^\+\+\+ b/(.+)$", re.MULTILINE)
 
+#: One deterministic shape per capability, written for a rule author. A
+#: cluster names what the diff does; the proposal names the predicate family
+#: that would have to exist to catch it.
+PROPOSALS = {
+    "fetch": "fetch a remote artifact in an executable context",
+    "pipe_shell": "pipe a fetched or decoded stream into a shell",
+    "shell_file": "write a script, then invoke it with a shell",
+    "eval": "evaluate a dynamically built string",
+    "base64": "decode a blob and execute the result",
+    "heredoc": "execute a heredoc body",
+    "python": "execute a Python payload",
+    "node": "execute a Node payload",
+    "ruby": "execute a Ruby payload",
+    "perl": "execute a Perl payload",
+    "php": "execute a PHP payload",
+    "lua": "execute a Lua payload",
+    "julia": "execute a Julia payload",
+    "rscript": "execute an R payload",
+    "bun": "execute a Bun payload",
+    "deno": "execute a Deno payload",
+    "java": "execute a Java payload",
+    "swift": "execute a Swift payload",
+    "tclsh": "execute a Tcl payload",
+    "awk": "execute an awk program",
+    "go_run": "run Go source at build time",
+    "cargo_run": "run Rust source at build time",
+    "dotnet": "run a managed runtime payload",
+    "source": "source a file outside the recipe",
+    "write": "write a file outside the package root",
+    "sed_i": "rewrite a file in place",
+    "chmod": "change permissions on a staged file",
+    "systemctl": "interact with the service manager",
+    "git_clone": "clone a repository at build time",
+    "ssh": "open an outbound SSH channel",
+    "nc": "open a raw network channel",
+    "rm_rf": "delete a tree",
+    "dd": "write a raw device",
+    "plain": "no capability signature matched; inspect the sample",
+}
+
+
+def propose(signature: str) -> str:
+    caps = signature.split("caps=", 1)[-1].split("|", 1)[0]
+    names = [cap for cap in caps.split(",") if cap]
+    if not names:
+        return PROPOSALS["plain"]
+    parts = [PROPOSALS.get(name, name) for name in names]
+    return " and ".join(parts)
+
 
 def _capabilities(text: str) -> tuple[str, ...]:
     found = [name for name, pattern in CAPABILITIES.items() if pattern.search(text)]
@@ -123,6 +172,7 @@ def cluster(
     for group in clusters:
         group["campaigns"] = dict(group["campaigns"].most_common())
         group["expected_rules"] = dict(group["expected_rules"].most_common())
+        group["proposed_shape"] = propose(group["signature"])
     clusters.sort(key=lambda group: (-group["count"], group["signature"]))
     return clusters
 

@@ -31,6 +31,7 @@ uv run python -m lab.cli corpora
 uv run python -m lab.cli labels
 uv run python -m lab.cli mine --out reports/predicates.json
 uv run python -m lab.cli gaps --out reports/gaps.json
+uv run python -m lab.cli refresh
 uv run python -m lab.cli report
 uv run pytest
 ```

@@ -19,15 +19,19 @@ from collections import defaultdict
 from ..features.checks import flatten, signature
 
 
-def _labelled(rows: list[dict]) -> list[dict]:
-    return [row for row in rows if row.get("label") in ("hard_fp", "tp_benign")]
+def _labelled(rows: list[dict], labels: tuple[str, ...]) -> list[dict]:
+    return [row for row in rows if row.get("label") in labels]
 
 
-def rank_groups(rows: list[dict], min_support: int = 1) -> list[dict]:
+def rank_groups(
+    rows: list[dict],
+    min_support: int = 1,
+    labels: tuple[str, ...] = ("hard_fp", "tp_benign"),
+) -> list[dict]:
     groups: dict[tuple[str, str], dict] = defaultdict(
         lambda: {"fp": 0, "tp_benign": 0, "packages": set()}
     )
-    for row in _labelled(rows):
+    for row in _labelled(rows, labels):
         key = (row.get("rule_id", ""), signature(flatten(row.get("checks"))))
         group = groups[key]
         bucket = "fp" if row["label"] == "hard_fp" else "tp_benign"
@@ -51,6 +55,26 @@ def rank_groups(rows: list[dict], min_support: int = 1) -> list[dict]:
         )
     ranked.sort(key=lambda row: (-row["fp"], -row["fp_rate"], -row["support"]))
     return ranked
+
+
+def rank_by_fingerprint(rows: list[dict], min_support: int = 1) -> dict[str, list[dict]]:
+    """The same ranking, sliced by instrument.
+
+    A fingerprint change is a new instrument. Pooling its rows with another
+    instrument hides whichever one is noisier.
+    """
+
+    grouped: dict[str, list[dict]] = defaultdict(list)
+    for row in rows:
+        grouped[row.get("config_fingerprint") or "unknown"].append(row)
+    return {
+        fingerprint: rank_groups(
+            group,
+            min_support=min_support,
+            labels=("hard_fp", "tp_benign", "weak_fp"),
+        )
+        for fingerprint, group in grouped.items()
+    }
 
 
 def _features(rows: list[dict]) -> tuple[list[list[float]], list[int], list[str]]:
@@ -85,7 +109,7 @@ def train(rows: list[dict]):
     except ImportError as exc:  # pragma: no cover - optional dependency
         raise RuntimeError("install the 'ml' extra to train the ranker") from exc
 
-    data = _labelled(rows)
+    data = _labelled(rows, ("hard_fp", "tp_benign"))
     matrix, labels, names = _features(data)
     if len(set(labels)) < 2:
         raise ValueError("need both hard_fp and tp_benign rows to train")

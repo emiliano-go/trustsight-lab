@@ -10,7 +10,7 @@ from .candidates import known
 from .features import findings
 from .ingest import corpora, reports, watcher
 from .labels import build, contradictions
-from .models import fp_ranker, gap_cluster, predicate_miner
+from .models import fingerprints, fp_ranker, gap_cluster, predicate_miner
 from .pins import DEFAULT_ROOT, read_pins, write_pins
 from .validate import runner
 
@@ -153,6 +153,53 @@ def cmd_candidates(args) -> int:
     return 0
 
 
+def cmd_refresh(args) -> int:
+    root = _root(args.root)
+    pins = read_pins(root)
+    write_pins(Path("config/pins.json"), pins)
+    rows = build.build(root / "trustsight", root / "trustsight-harness")
+    reports.write_jsonl(rows, DATA / "labels.jsonl")
+    if args.contradictions:
+        for row in _read_jsonl(Path(args.contradictions)):
+            if row.get("contradiction"):
+                rows.append({**row, "label": "weak_fp"})
+    predicates = predicate_miner.mine(rows, min_support=args.min_support)
+    _write_json(REPORTS / "predicates.json", predicates)
+    _write_json(REPORTS / "rank.json", fp_ranker.rank_groups(rows))
+    _write_json(
+        REPORTS / "rank_by_fingerprint.json",
+        fp_ranker.rank_by_fingerprint(rows),
+    )
+    bypass = corpora.bypass_fixtures(root / "trustsight-harness")
+    gaps = gap_cluster.cluster(
+        bypass,
+        rules_by_campaign=gap_cluster.campaign_rules(root / "trustsight-harness"),
+    )
+    _write_json(REPORTS / "gaps.json", gaps)
+    if args.extract:
+        watcher.extract(
+            Path(args.db),
+            Path(args.watcher_out),
+            limit=args.limit,
+            with_diffs=False,
+        )
+    fingerprint_rows = []
+    findings_path = Path(args.findings) if args.findings else None
+    if findings_path and findings_path.is_file():
+        fingerprint_rows = fingerprints.summarize(_read_jsonl(findings_path))
+        _write_json(REPORTS / "fingerprints.json", fingerprint_rows)
+    summary = {
+        "pins": pins.to_dict(),
+        "labels": build.counts(rows),
+        "predicates": len(predicates),
+        "gaps": len(gaps),
+        "fingerprints": fingerprint_rows,
+    }
+    _write_json(REPORTS / "refresh.json", summary)
+    print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
 def cmd_report(args) -> int:
     out = Path(args.out) if args.out else REPORTS / "report.md"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -183,10 +230,16 @@ def cmd_report(args) -> int:
             )
     lines += ["", "## Bypass clusters (recall backlog)", ""]
     if gaps:
-        lines += ["| Signature | Count | Expected rules |", "|---|---|---|"]
+        lines += [
+            "| Signature | Count | Proposed shape | Expected rules |",
+            "|---|---|---|---|",
+        ]
         for row in gaps[:20]:
             rules = ", ".join(row.get("expected_rules") or {}) or "-"
-            lines.append(f"| `{row['signature']}` | {row['count']} | {rules} |")
+            lines.append(
+                f"| `{row['signature']}` | {row['count']} | "
+                f"{row.get('proposed_shape', '-')} | {rules} |"
+            )
     out.write_text("\n".join(lines) + "\n")
     print(out)
     return 0
@@ -296,6 +349,16 @@ def build_parser() -> argparse.ArgumentParser:
     cand.add_argument("--predicates", default=str(REPORTS / "predicates.json"))
     cand.add_argument("--out")
     cand.set_defaults(func=cmd_candidates)
+
+    refresh = sub.add_parser("refresh", help="re-pin, relabel, and re-rank")
+    refresh.add_argument("--findings", default=str(DATA / "contradictions_sample.jsonl"))
+    refresh.add_argument("--contradictions", default=str(DATA / "contradictions_sample.jsonl"))
+    refresh.add_argument("--min-support", type=int, default=2)
+    refresh.add_argument("--extract", action="store_true")
+    refresh.add_argument("--db", default=str(DATA / "watcher.db"))
+    refresh.add_argument("--watcher-out", default=str(DATA / "watcher"))
+    refresh.add_argument("--limit", type=int)
+    refresh.set_defaults(func=cmd_refresh)
 
     rep = sub.add_parser("report", help="render the markdown summary")
     rep.add_argument("--out")
