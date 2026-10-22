@@ -265,8 +265,8 @@ def for_predicate(
     if template is None:
         return None
     candidate = render(template, trustsight_root)
-    candidate.rule_id = rule_id
-    candidate.predicate = predicate
+    candidate.rule_id = key[0]
+    candidate.predicate = key[1]
     return candidate
 
 

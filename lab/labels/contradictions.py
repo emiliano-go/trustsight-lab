@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from ..features.checks import flatten
 
+#: ``header_match`` stays a miner feature, not a contradiction: without a
+#: rename flag from the diff it cannot distinguish a renamed file from a
+#: genuine header match. This is the amended plan decision.
+
 #: A contradiction only says something about the rule it can refute. A
 #: package whose SKIPs are all local files does not make an unrelated
 #: persistence finding false, so the rule is part of the label.

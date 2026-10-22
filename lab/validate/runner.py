@@ -165,6 +165,17 @@ def validate_candidate(
     try:
         link_corpus(tree, trustsight_root)
         apply_patch(tree, candidate.patch)
+        if tier == 0:
+            from . import fixtures
+
+            checked = fixtures.validate(candidate, tree, trustsight_root)
+            return {
+                "candidate": candidate.id,
+                "tier": 0,
+                "tree": str(tree),
+                "fixtures": checked,
+                "passed": checked["passed"],
+            }
         reproducers = []
         for report in candidate.reproducers:
             directory = harness_root / report
