@@ -1,0 +1,15 @@
+{
+  "corpora": {
+    "benign": "trustsight/tests/fixtures/benign-corpus",
+    "bypass_fixtures": "trustsight-harness/fixtures-out",
+    "campaigns": "trustsight-harness/campaigns",
+    "fp_reports": "trustsight-harness/benign",
+    "ioc_baselines": "trustsight/ioc-baselines",
+    "malicious": "trustsight/tests/fixtures/malicious"
+  },
+  "corpus_lock_sha256": "1f163fa4cede790d3da66c4f94d50a032bd1fc79e12bb4885bade816bb421040",
+  "harness_sha": "1315fb9372b1ab123be330ddcc7c78a9689787c7",
+  "harness_version": "v2.0.0-60-g1315fb9",
+  "trustsight_sha": "f153fcd4d78cb17407ed0b37bb47c8a78316ddc7",
+  "trustsight_version": "v0.22.0-38-gf153fcd"
+}

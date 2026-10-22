@@ -1,0 +1,27 @@
+[project]
+name = "trustsight-lab"
+version = "0.1.0"
+description = "Offline ML to find, rank, and validate deterministic TrustSight rule improvements."
+requires-python = ">=3.11"
+dependencies = []
+
+[project.optional-dependencies]
+ml = ["numpy>=1.26", "pandas>=2.1", "scikit-learn>=1.4", "scipy>=1.11"]
+parquet = ["pyarrow>=15"]
+dev = ["pytest>=8.0", "ruff>=0.6"]
+
+[project.scripts]
+lab = "lab.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["lab"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
