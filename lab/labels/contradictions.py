@@ -21,6 +21,8 @@ CONTRADICTION_RULES = {
     "local_skip_only": frozenset(
         {"H001", "H002", "H003", "C001", "C002", "C003"}
     ),
+    "same_upstream": frozenset({"H064", "D004", "H098"}),
+    "ref_double_count": frozenset({"H033", "H101"}),
 }
 
 
@@ -90,6 +92,20 @@ def derive(
         return {
             "label": "contradiction_fp",
             "reason": "local_skip_only",
+            "rule_id": rule_id,
+        }
+    if fields.get("same_upstream") is True and _applies("same_upstream", rule_id):
+        return {
+            "label": "contradiction_fp",
+            "reason": "same_upstream",
+            "rule_id": rule_id,
+        }
+    if fields.get("ref_double_count") is True and _applies(
+        "ref_double_count", rule_id
+    ):
+        return {
+            "label": "contradiction_fp",
+            "reason": "ref_double_count",
             "rule_id": rule_id,
         }
     return None

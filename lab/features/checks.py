@@ -34,6 +34,14 @@ def flatten(checks: dict | None) -> dict[str, object]:
         out["skip_local"] = skip.get("local_skip_count")
         out["skip_unknown"] = skip.get("unknown_skip_count")
         out["skip_complete"] = skip.get("complete")
+    same = _get(checks, "same_upstream")
+    if same is not None:
+        out["same_upstream"] = same.get("same_upstream")
+    checksum = _get(checks, "checksum_only")
+    if checksum is not None:
+        out["checksum_only"] = checksum.get("checksum_only")
+    if "ref_double_count" in checks:
+        out["ref_double_count"] = checks.get("ref_double_count")
     return out
 
 

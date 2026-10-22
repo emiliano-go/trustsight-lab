@@ -23,6 +23,8 @@ INTERESTING = (
     "H064",
     "D004",
     "H098",
+    "H033",
+    "H101",
     "R007",
     "R054",
 )
@@ -110,11 +112,32 @@ def build(
                         snapshot["pkgbuild_text"],
                         recipe=recipe,
                         files=files,
+                        source_changes=fact.get("source_changes"),
                     )
                 except Exception as exc:  # noqa: BLE001 - a refusal keeps the row
                     finding["evidence_error"] = str(exc)
             findings.append(finding)
+    _annotate_ref_double_count(findings)
     return findings
+
+
+def _annotate_ref_double_count(findings: list[dict]) -> None:
+    """Mark the H033/H101 pair when both describe the same analysis.
+
+    The pair counts one ref change twice. The marker is evidence about the
+    pair, not a verdict on either finding.
+    """
+
+    groups: dict[tuple, list[dict]] = {}
+    for row in findings:
+        key = (row.get("package"), row.get("history_id"))
+        groups.setdefault(key, []).append(row)
+    for rows in groups.values():
+        rules = {row.get("rule_id") for row in rows}
+        if {"H033", "H101"} <= rules:
+            for row in rows:
+                if row.get("rule_id") in ("H033", "H101"):
+                    row.setdefault("checks", {})["ref_double_count"] = True
 
 
 def write(rows: list[dict], path: Path) -> None:

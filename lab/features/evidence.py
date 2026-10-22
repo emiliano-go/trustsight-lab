@@ -11,6 +11,8 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from . import recipe_checks
+
 
 def _prepend(path: Path) -> None:
     value = str(path)
@@ -63,6 +65,7 @@ def recompute(
     install_name: str | None = None,
     recipe=None,
     files: set[str] | None = None,
+    source_changes: dict | None = None,
 ) -> dict:
     """Return the four checks for one finding.
 
@@ -95,4 +98,6 @@ def recompute(
         "url_in_source": check_url_in_source(finding, recipe),
         "header_match": check_header_match(finding),
         "skip_context": check_skip_context(recipe, files),
+        "same_upstream": recipe_checks.same_upstream(recipe),
+        "checksum_only": recipe_checks.checksum_only(source_changes),
     }

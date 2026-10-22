@@ -69,3 +69,26 @@ def test_finding_rows_recompute_evidence_and_contradictions(tmp_path):
     assert rows[0]["checks"]["phantom_install"]["phantom"] is True
     annotated = contradictions.annotate([{**rows[0], "label": "unlabelled"}])
     assert annotated[0]["contradiction"]["reason"] == "phantom_install"
+
+
+def test_h033_and_h101_on_one_analysis_are_marked_double_count(tmp_path):
+    extract = tmp_path / "extract"
+    _write(extract / "packages.jsonl.gz", [{"id": 1, "name": "demo"}])
+    _write(extract / "pkgbuild_snapshots.jsonl.gz", [])
+    _write(
+        extract / "analysis_history.jsonl.gz",
+        [
+            {
+                "id": 10,
+                "package_id": 1,
+                "timestamp": "2026-10-01",
+                "final_score": 20,
+                "score_breakdown": [
+                    {"rule_id": "H033", "severity": "INFO", "weight": 0},
+                    {"rule_id": "H101", "severity": "INFO", "weight": 0},
+                ],
+            }
+        ],
+    )
+    rows = findings.build(extract, root=ROOT, recompute=False)
+    assert all(row["checks"]["ref_double_count"] is True for row in rows)

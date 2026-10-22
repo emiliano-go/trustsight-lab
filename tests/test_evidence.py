@@ -76,3 +76,18 @@ def test_a_stale_snapshot_produces_no_label():
         {"url_in_source": {"misclassified": True}},
         rule_id="NOVELTY", timestamp=NOW, captured_at=STALE,
     ) is None
+
+
+def test_same_upstream_and_double_count_are_rule_scoped():
+    assert contradictions.derive(
+        {"same_upstream": {"same_upstream": True}},
+        rule_id="H064", timestamp=NOW, captured_at=SOON,
+    )["reason"] == "same_upstream"
+    assert contradictions.derive(
+        {"same_upstream": {"same_upstream": True}},
+        rule_id="R054", timestamp=NOW, captured_at=SOON,
+    ) is None
+    assert contradictions.derive(
+        {"ref_double_count": True},
+        rule_id="H101", timestamp=NOW, captured_at=SOON,
+    )["reason"] == "ref_double_count"

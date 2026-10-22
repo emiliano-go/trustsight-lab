@@ -28,6 +28,9 @@ PREDICATES: dict[str, object] = {
     and f["skip_local"] > 0,
     "unknown_skip=0": lambda f: f.get("skip_unknown") == 0,
     "skip_complete=true": lambda f: f.get("skip_complete") is True,
+    "same_upstream=true": lambda f: f.get("same_upstream") is True,
+    "checksum_only=true": lambda f: f.get("checksum_only") is True,
+    "ref_double_count=true": lambda f: f.get("ref_double_count") is True,
 }
 
 
