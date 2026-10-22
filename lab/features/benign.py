@@ -75,5 +75,34 @@ def flatten(results: list[dict]) -> list[dict]:
     return rows
 
 
+def fire_rates(results: list[dict]) -> dict:
+    """Per-rule benign fire rate, counted once per diff.
+
+    The locked corpus is the negative set, not the handful of adjudicated
+    reports. A rule that fires on a large share of ordinary packaging is a
+    false-positive census regardless of how it scored.
+    """
+
+    total = len(results)
+    counts: dict[str, int] = {}
+    for result in results:
+        for rule in {
+            entry.get("rule_id")
+            for entry in result.get("entries") or []
+            if entry.get("rule_id") and entry.get("rule_id") != "COVERAGE"
+        }:
+            counts[rule] = counts.get(rule, 0) + 1
+    return {
+        "scanned": total,
+        "rules": {
+            rule: {
+                "count": count,
+                "rate": round(count / total, 4) if total else 0.0,
+            }
+            for rule, count in sorted(counts.items())
+        },
+    }
+
+
 def findings(trustsight_root: Path, corpus: Path, sample: int = 20) -> list[dict]:
     return flatten(scan(trustsight_root, corpus, sample=sample))

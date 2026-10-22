@@ -53,11 +53,13 @@ def cmd_labels(args) -> int:
     root = _root(args.root)
     rows = build.build(root / "trustsight", root / "trustsight-harness")
     if args.benign_sample:
-        rows += benign.findings(
+        raw = benign.scan(
             root / "trustsight",
             root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
             sample=args.benign_sample,
         )
+        rows += benign.flatten(raw)
+        _write_json(DATA / "benign_fire_rates.json", benign.fire_rates(raw))
     out = Path(args.out) if args.out else DATA / "labels.jsonl"
     reports.write_jsonl(rows, out)
     print(json.dumps(build.counts(rows), indent=2, sort_keys=True))
@@ -88,7 +90,11 @@ def cmd_rank(args) -> int:
     if args.train:
         trained = fp_ranker.train(rows)
         _write_json(Path(args.train), trained)
-        print(json.dumps({"in_sample_auc": trained["in_sample_auc"]}, indent=2))
+        print(json.dumps({
+            "in_sample_auc": trained["in_sample_auc"],
+            "holdout_auc": trained["holdout_auc"],
+            "holdout_n": trained["holdout_n"],
+        }, indent=2))
     return 0
 
 
@@ -102,7 +108,18 @@ def cmd_gaps(args) -> int:
     )
     out = Path(args.out) if args.out else REPORTS / "gaps.json"
     _write_json(out, clusters)
-    print(json.dumps(gap_cluster.summarize(clusters), indent=2))
+    summary = gap_cluster.summarize(clusters)
+    if args.emit:
+        version = args.version or read_pins(root).trustsight_version
+        version = version.split("-", 1)[0].lstrip("vV")
+        summary["emitted"] = gap_cluster.emit(
+            clusters,
+            Path(args.emit),
+            limit=args.emit_limit,
+            version=version,
+            overwrite=args.overwrite,
+        )
+    print(json.dumps(summary, indent=2))
     return 0
 
 
@@ -136,6 +153,8 @@ def cmd_contradictions(args) -> int:
 
 
 def cmd_candidates(args) -> int:
+    from .validate import fixtures as fixture_checks
+
     root = _root(args.root)
     predicates = json.loads(Path(args.predicates).read_text())
     out_dir = Path(args.out) if args.out else REPORTS / "candidates"
@@ -150,11 +169,20 @@ def cmd_candidates(args) -> int:
                 "rule_id": item["rule_id"],
                 "predicate": item["predicate"],
                 "status": "needs_template",
+                "tier0_fixture": None,
                 "support": item["support"],
                 "fp": item["fp"],
             }
         else:
-            doc = {**known.to_dict(candidate), "status": "ready"}
+            # A candidate is only "ready" when it can be checked before any
+            # corpus scan: an FP case and its true-positive twin.  A patch
+            # with no fixture is a proposal, not a validated improvement.
+            case = fixture_checks.case_for(candidate.rule_id, candidate.predicate)
+            doc = {
+                **known.to_dict(candidate),
+                "status": "ready" if case else "needs_fixture",
+                "tier0_fixture": case.name if case else None,
+            }
             doc["linked_findings"] = item.get("packages", [])
         path = out_dir / f"{doc.get('id', item['rule_id'] + '-' + item['predicate'].replace('=', '-'))}.json"
         _write_json(path, doc)
@@ -169,11 +197,13 @@ def cmd_refresh(args) -> int:
     write_pins(Path("config/pins.json"), pins)
     rows = build.build(root / "trustsight", root / "trustsight-harness")
     if args.benign_sample:
-        rows += benign.findings(
+        raw = benign.scan(
             root / "trustsight",
             root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
             sample=args.benign_sample,
         )
+        rows += benign.flatten(raw)
+        _write_json(DATA / "benign_fire_rates.json", benign.fire_rates(raw))
     reports.write_jsonl(rows, DATA / "labels.jsonl")
     if args.extract:
         watcher.extract(
@@ -227,13 +257,26 @@ def cmd_refresh(args) -> int:
     summary = {
         "pins": pins.to_dict(),
         "labels": build.counts(rows),
+        "labels_audit": build.audit(rows),
         "predicates": len(predicates),
         "predicates_strict": len(strict),
         "gaps": len(gaps),
         "fingerprints": fingerprint_rows,
     }
     _write_json(REPORTS / "refresh.json", summary)
-    print(json.dumps(summary, indent=2, sort_keys=True))
+    from . import ledger, scoreboard
+
+    ledger_doc = ledger.build(root)
+    summary["ledger"] = ledger_doc["counts"]
+    report = _render_report(
+        predicates, fp_ranker.rank_groups(rows), gaps
+    )
+    directory = scoreboard.write_run(
+        pins, summary, report, runs_dir=Path(args.runs)
+    )
+    ledger.write(ledger_doc, directory / ledger.LEDGER)
+    print(json.dumps({**summary, "run": str(directory)},
+                     indent=2, sort_keys=True))
     return 0
 
 
@@ -264,15 +307,7 @@ def cmd_diagnose(args) -> int:
     return 0
 
 
-def cmd_report(args) -> int:
-    out = Path(args.out) if args.out else REPORTS / "report.md"
-    out.parent.mkdir(parents=True, exist_ok=True)
-    predicates = json.loads((REPORTS / "predicates.json").read_text()) \
-        if (REPORTS / "predicates.json").is_file() else []
-    rank = json.loads((REPORTS / "rank.json").read_text()) \
-        if (REPORTS / "rank.json").is_file() else []
-    gaps = json.loads((REPORTS / "gaps.json").read_text()) \
-        if (REPORTS / "gaps.json").is_file() else []
+def _render_report(predicates, rank, gaps) -> str:
     lines = ["# TrustSight Lab report", ""]
     lines += ["## Precision candidates", ""]
     if predicates:
@@ -304,8 +339,49 @@ def cmd_report(args) -> int:
                 f"| `{row['signature']}` | {row['count']} | "
                 f"{row.get('proposed_shape', '-')} | {rules} |"
             )
-    out.write_text("\n".join(lines) + "\n")
+    return "\n".join(lines) + "\n"
+
+
+def _read_report(name: str, default):
+    path = REPORTS / name
+    return json.loads(path.read_text()) if path.is_file() else default
+
+
+def cmd_report(args) -> int:
+    out = Path(args.out) if args.out else REPORTS / "report.md"
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(_render_report(
+        _read_report("predicates.json", []),
+        _read_report("rank.json", []),
+        _read_report("gaps.json", []),
+    ))
     print(out)
+    return 0
+
+
+def cmd_status(args) -> int:
+    from . import scoreboard
+
+    failures = scoreboard.check(
+        _root(args.root),
+        runs_dir=Path(args.runs),
+        candidates=Path(args.candidates),
+    )
+    if failures:
+        for failure in failures:
+            print(f"FAIL {failure}")
+        return 1
+    print("ok: run is stamped and every ready candidate applies")
+    return 0
+
+
+def cmd_ledger(args) -> int:
+    from . import ledger
+
+    doc = ledger.build(_root(args.root), candidates=Path(args.candidates))
+    out = Path(args.out) if args.out else REPORTS / ledger.LEDGER
+    ledger.write(doc, out)
+    print(json.dumps({"path": str(out), "counts": doc["counts"]}, indent=2))
     return 0
 
 
@@ -438,6 +514,10 @@ def build_parser() -> argparse.ArgumentParser:
     gaps = sub.add_parser("gaps", help="cluster bypass diffs by capability")
     gaps.add_argument("--out")
     gaps.add_argument("--limit", type=int)
+    gaps.add_argument("--emit", help="write campaign dirs here")
+    gaps.add_argument("--emit-limit", type=int, default=10)
+    gaps.add_argument("--version", help="TrustSight version for emitted campaigns")
+    gaps.add_argument("--overwrite", action="store_true")
     gaps.set_defaults(func=cmd_gaps)
 
     find = sub.add_parser("findings", help="build finding rows from an extraction")
@@ -469,7 +549,25 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--db", default=str(DATA / "watcher.db"))
     refresh.add_argument("--watcher-out", default=str(DATA / "watcher"))
     refresh.add_argument("--limit", type=int)
+    refresh.add_argument("--runs", default="runs")
     refresh.set_defaults(func=cmd_refresh)
+
+    status = sub.add_parser(
+        "status", help="check the committed run and candidate drift"
+    )
+    status.add_argument("--runs", default="runs")
+    status.add_argument("--candidates", default="reports/candidates")
+    status.add_argument(
+        "--check", action="store_true", help="exit non-zero on drift"
+    )
+    status.set_defaults(func=cmd_status)
+
+    ledg = sub.add_parser(
+        "ledger", help="join candidates to matrix, regression, and coverage"
+    )
+    ledg.add_argument("--candidates", default="reports/candidates")
+    ledg.add_argument("--out")
+    ledg.set_defaults(func=cmd_ledger)
 
     diag = sub.add_parser("diagnose", help="diagnose a calibration gate")
     diag.add_argument("which", choices=["pearson"])

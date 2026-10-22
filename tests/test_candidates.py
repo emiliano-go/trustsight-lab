@@ -51,3 +51,26 @@ def test_targets_must_stay_in_the_rule_surface():
         except ValueError:
             continue
         raise AssertionError("patch accepted")
+
+
+def test_a_candidate_without_a_tier0_fixture_is_not_ready(tmp_path):
+    import json
+
+    from lab import cli
+
+    predicates = tmp_path / "predicates.json"
+    predicates.write_text(json.dumps([{
+        "rule_id": "H064",
+        "predicate": "same_upstream=true",
+        "support": 1,
+        "fp": 1,
+        "packages": ["demo"],
+    }]))
+    out = tmp_path / "candidates"
+    assert cli.main([
+        "--root", str(ROOT),
+        "candidates", "--predicates", str(predicates), "--out", str(out),
+    ]) == 0
+    doc = json.loads(next(out.glob("*.json")).read_text())
+    assert doc["status"] == "needs_fixture"
+    assert doc["tier0_fixture"] is None

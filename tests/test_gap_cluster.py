@@ -16,7 +16,7 @@ def test_signature_separates_fetch_and_interpreter_shapes():
 def test_cluster_groups_real_bypasses():
     rows = [
         {"path": str(p), "group": "fixtures-out"}
-        for p in sorted((ROOT / "trustsight-harness" / "fixtures-out").glob("*.diff"))[:200]
+        for p in sorted((ROOT / "trustsight-harness" / "fixtures-out").rglob("*.diff"))[:200]
     ]
     clusters = gap_cluster.cluster(rows)
     assert clusters
@@ -30,7 +30,7 @@ def test_campaign_rules_join_expected_rules():
     assert "known-bypasses-manual" in rules
     rows = [
         {"path": str(p), "group": "known-bypasses-manual"}
-        for p in sorted((harness / "fixtures-out").glob("*.diff"))[:20]
+        for p in sorted((harness / "fixtures-out").rglob("*.diff"))[:20]
     ]
     clusters = gap_cluster.cluster(rows, rules_by_campaign=rules)
     assert any(cluster["expected_rules"] for cluster in clusters)

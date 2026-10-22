@@ -1,11 +1,22 @@
 from pathlib import Path
 
+import pytest
+
+from lab.ingest import reports
 from lab.labels import build
 from lab.models import fp_ranker
 
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _has_fp_reports() -> bool:
+    return bool(reports.load_reports(ROOT / "trustsight-harness"))
+
+
+@pytest.mark.skipif(
+    not _has_fp_reports(),
+    reason="the adjudicated FP report corpus is not checked out",
+)
 def test_group_rank_puts_the_known_fp_signatures_first():
     rows = build.build(ROOT / "trustsight", ROOT / "trustsight-harness")
     ranked = fp_ranker.rank_groups(rows)

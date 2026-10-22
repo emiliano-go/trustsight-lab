@@ -61,7 +61,9 @@ def benign_corpus(trustsight_root: Path) -> list[dict]:
 def bypass_fixtures(harness_root: Path) -> list[dict]:
     root = harness_root / "fixtures-out"
     rows = []
-    for expected_path in sorted(root.glob("*.expected.json")):
+    # The exporter writes into a subdirectory (e.g. `fixtures-gaps/`); a
+    # top-level glob silently reported an empty recall corpus.
+    for expected_path in sorted(root.rglob("*.expected.json")):
         stem = expected_path.name[: -len(".expected.json")]
         expected = json.loads(expected_path.read_text())
         rows.append(
@@ -69,7 +71,7 @@ def bypass_fixtures(harness_root: Path) -> list[dict]:
                 "corpus": "bypass",
                 "group": (expected.get("provenance") or {}).get("campaign", ""),
                 "package": "harness-pkg",
-                "path": str(root / f"{stem}.diff"),
+                "path": str(expected_path.parent / f"{stem}.diff"),
                 "label": "bypass",
                 "must_fire": list(expected.get("must_fire") or []),
                 "known_gap": bool(expected.get("known_gap")),

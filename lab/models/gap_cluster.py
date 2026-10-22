@@ -9,6 +9,8 @@ the grouping later without changing the output contract.
 
 from __future__ import annotations
 
+import hashlib
+import json
 import re
 from collections import Counter, defaultdict
 from pathlib import Path
@@ -118,6 +120,12 @@ def signature(text: str) -> str:
     return f"caps={','.join(_capabilities(text))}|files={','.join(_file_kinds(text))}"
 
 
+def fixture_id(sig: str) -> str:
+    """A stable campaign directory name for one capability shape."""
+
+    return "gap-" + hashlib.sha256(sig.encode("utf-8")).hexdigest()[:10]
+
+
 def campaign_rules(harness_root: Path) -> dict[str, list[str]]:
     """Expected rule ids per campaign, from the committed records."""
 
@@ -162,6 +170,7 @@ def cluster(
         group = groups[key]
         group["signature"] = key
         group["count"] += 1
+        group["representative"] = str(path)
         campaign = row.get("group", "")
         group["campaigns"][campaign] += 1
         for rule in (rules_by_campaign or {}).get(campaign, []):
@@ -173,6 +182,8 @@ def cluster(
         group["campaigns"] = dict(group["campaigns"].most_common())
         group["expected_rules"] = dict(group["expected_rules"].most_common())
         group["proposed_shape"] = propose(group["signature"])
+        group["fixture_id"] = fixture_id(group["signature"])
+        group["needs_rule"] = not group["expected_rules"]
     clusters.sort(key=lambda group: (-group["count"], group["signature"]))
     return clusters
 
@@ -183,3 +194,77 @@ def summarize(clusters: list[dict]) -> dict:
         "bypasses": sum(cluster["count"] for cluster in clusters),
         "top": [{"signature": c["signature"], "count": c["count"]} for c in clusters[:10]],
     }
+
+
+def _campaign(fid: str, rules: list[str], version: str) -> dict:
+    return {
+        "campaign": fid,
+        "campaign_type": "deterministic",
+        "environment": {
+            "trustsight_version": version,
+            "trustsight_source": "local-path",
+            "db_state": "cold",
+            "flag_threshold": 20,
+        },
+        "generator": {"type": "raw-diff"},
+        "prompt": {
+            "prompt_id": fid,
+            "behavior_goal": "fetch_then_execute",
+            "expected_rules": rules,
+            "forbidden_techniques": {},
+        },
+        "attempts": 1,
+    }
+
+
+def emit(
+    clusters: list[dict],
+    out_dir: Path,
+    *,
+    limit: int | None = None,
+    version: str = "0.22.0",
+    overwrite: bool = False,
+) -> list[dict]:
+    """Write one `raw-diff` campaign per cluster.
+
+    The output is a normal campaign directory, so `coverage` counts the rule
+    it targets and `matrix` can move its cell once the rule fires.  A cluster
+    with no expected rule is still written, but the caller is told it needs a
+    rule rather than being given a guessed one.
+
+    JSON is valid YAML, so this needs no YAML writer in the lab.
+    """
+
+    written: list[dict] = []
+    for cluster in clusters[:limit]:
+        representative = cluster.get("representative")
+        if not representative:
+            continue
+        source = Path(representative)
+        if not source.is_file():
+            continue
+        fid = cluster["fixture_id"]
+        directory = out_dir / fid
+        if directory.exists() and not overwrite:
+            written.append({"campaign": fid, "skipped": "exists"})
+            continue
+        rules = sorted(cluster.get("expected_rules") or {})
+        directory.mkdir(parents=True, exist_ok=True)
+        (directory / "campaign.yml").write_text(
+            json.dumps(_campaign(fid, rules, version), indent=2) + "\n"
+        )
+        (directory / "inputs.yml").write_text(
+            json.dumps(
+                {"cells": [{"id": fid, "diff": source.read_text(errors="replace")}]},
+                indent=2,
+            )
+            + "\n"
+        )
+        written.append({
+            "campaign": fid,
+            "signature": cluster["signature"],
+            "expected_rules": rules,
+            "needs_rule": not rules,
+            "path": str(directory),
+        })
+    return written

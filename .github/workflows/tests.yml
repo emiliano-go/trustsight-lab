@@ -2,6 +2,8 @@ name: tests
 on:
   push:
   pull_request:
+  schedule:
+    - cron: '0 4 * * *'
 
 jobs:
   test:
@@ -25,3 +27,8 @@ jobs:
         working-directory: trustsight-lab
       - run: uv run --with ruff ruff check lab tests
         working-directory: trustsight-lab
+      - name: Validate ready candidates
+        working-directory: trustsight-lab
+        env:
+          LAB_TIER: ${{ github.event_name == 'schedule' && '2' || '1' }}
+        run: uv run python scripts/validate_ready.py

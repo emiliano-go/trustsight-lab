@@ -1,10 +1,17 @@
 from pathlib import Path
 
+import pytest
+
 from lab.features.checks import flatten
+from lab.ingest import reports
 from lab.labels import build
 from lab.models import predicate_miner
 
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def _has_fp_reports() -> bool:
+    return bool(reports.load_reports(ROOT / "trustsight-harness"))
 
 
 def test_flatten_does_not_treat_unknown_as_false():
@@ -12,6 +19,10 @@ def test_flatten_does_not_treat_unknown_as_false():
     assert flatten({"phantom_install": None}) == {}
 
 
+@pytest.mark.skipif(
+    not _has_fp_reports(),
+    reason="the adjudicated FP report corpus is not checked out",
+)
 def test_miner_recovers_the_known_report_predicates():
     rows = build.build(ROOT / "trustsight", ROOT / "trustsight-harness")
     found = {(c["rule_id"], c["predicate"]) for c in predicate_miner.mine(rows)}

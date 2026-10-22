@@ -48,6 +48,7 @@ def _rows_from_triage(path: Path) -> list[dict]:
                     "report_path": entry.get("report_path", ""),
                     "corpus_paths": list(entry.get("corpus_paths") or []),
                     "score": evidence.get("score"),
+                    "config_fingerprint": evidence.get("config_fingerprint"),
                     "aur_files": list(evidence.get("aur_files") or []),
                     "rule_id": verdict.get("rule_id") or finding.get("rule_id", ""),
                     "index": index,

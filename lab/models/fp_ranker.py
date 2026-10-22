@@ -100,12 +100,25 @@ def _features(rows: list[dict]) -> tuple[list[list[float]], list[int], list[str]
     return matrix, labels, names
 
 
-def train(rows: list[dict]):
-    """Fit a regularized logistic model; raise if scikit-learn is absent."""
+def _model(factory):
+    return factory(
+        class_weight="balanced", max_iter=2000, C=0.5, solver="liblinear"
+    )
+
+
+def train(rows: list[dict], holdout_fraction: float = 0.3):
+    """Fit a regularized logistic model; raise if scikit-learn is absent.
+
+    The in-sample number is kept for continuity, but it is not evidence: with
+    one row per finding, the model can memorize the same package.  The
+    holdout is grouped by package, so an FP and its siblings cannot land on
+    both sides of the split.
+    """
 
     try:
         from sklearn.linear_model import LogisticRegression
         from sklearn.metrics import roc_auc_score
+        from sklearn.model_selection import GroupShuffleSplit
     except ImportError as exc:  # pragma: no cover - optional dependency
         raise RuntimeError("install the 'ml' extra to train the ranker") from exc
 
@@ -113,21 +126,47 @@ def train(rows: list[dict]):
     matrix, labels, names = _features(data)
     if len(set(labels)) < 2:
         raise ValueError("need both hard_fp and tp_benign rows to train")
-    model = LogisticRegression(
-        class_weight="balanced", max_iter=2000, C=0.5, solver="liblinear"
-    )
+    model = _model(LogisticRegression)
     model.fit(matrix, labels)
     scores = model.predict_proba(matrix)[:, 1]
     weights = sorted(
         zip(names, model.coef_[0]), key=lambda item: -abs(item[1])
     )
+
+    holdout_auc = None
+    holdout_n = 0
+    groups = [row.get("package", "") for row in data]
+    if len(set(groups)) >= 2:
+        try:
+            split = GroupShuffleSplit(
+                n_splits=1, test_size=holdout_fraction, random_state=0
+            )
+            train_idx, test_idx = next(split.split(matrix, labels, groups))
+            train_labels = [labels[i] for i in train_idx]
+            test_labels = [labels[i] for i in test_idx]
+            if len(set(train_labels)) == 2 and len(set(test_labels)) == 2:
+                held = _model(LogisticRegression)
+                held.fit([matrix[i] for i in train_idx], train_labels)
+                holdout_auc = round(float(roc_auc_score(
+                    test_labels,
+                    held.predict_proba([matrix[i] for i in test_idx])[:, 1],
+                )), 3)
+                holdout_n = len(test_idx)
+        except ValueError:
+            holdout_auc = None
+
     return {
         "model": model,
         "features": names,
         "in_sample_auc": round(float(roc_auc_score(labels, scores)), 3),
+        "holdout_auc": holdout_auc,
+        "holdout_n": holdout_n,
         "weights": [
             {"feature": name, "weight": round(float(weight), 3)}
             for name, weight in weights[:20]
         ],
-        "note": "in-sample; the corpus is 29 FPs, not an efficacy sample",
+        "note": (
+            "in-sample is a summary; holdout_auc is grouped by package and "
+            "is the only number worth quoting"
+        ),
     }

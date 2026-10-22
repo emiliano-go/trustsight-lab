@@ -34,15 +34,34 @@ uv run python -m lab.cli gaps --out reports/gaps.json
 uv run python -m lab.cli refresh
 uv run python -m lab.cli diagnose pearson --sample 4
 uv run python -m lab.cli report
+uv run python -m lab.cli status --check
+uv run python -m lab.cli ledger
 uv run pytest
 ```
 
-Candidates are rendered as patch files and validated in a worktree:
+Candidates are rendered as patch files and validated in a worktree. A
+candidate is only `ready` when it also has a tier-0 fixture (an FP case and
+its true-positive twin); otherwise it is `needs_fixture` and stays in the
+backlog:
 
 ```bash
 uv run python -m lab.cli candidates
 uv run python -m lab.cli validate \
   --candidate reports/candidates/C024-phantom-install.json --tier 1
+```
+
+`refresh` commits one small run per pinned instrument under
+`runs/<version>-<sha>/` (`summary.json`, `report.md`, `ledger.json`). The
+ledger joins each candidate to the matrix, the attributed regression report,
+and coverage, and marks it `pending`, `landed`, `stale`, or `backlog`.
+`status --check` fails when a ready candidate's patch no longer applies or a
+reproducer disappeared.
+
+Bypass clusters can be emitted as `raw-diff` campaigns, ready to copy into
+the harness's `campaigns/` directory so `coverage` and `matrix` see them:
+
+```bash
+uv run python -m lab.cli gaps --emit runs/gap-fixtures
 ```
 
 The watcher database is read-only. A bounded sample can be extracted from a
@@ -70,6 +89,9 @@ lab/labels/             hard, benign, bypass, and contradiction labels
 lab/models/             predicate miner, FP ranker, gap clusterer
 lab/candidates/         deterministic fix templates
 lab/validate/           worktree runner and acceptance metrics
+lab/scoreboard.py       stamped, committed run summaries
+lab/ledger.py           candidate -> matrix/regression/coverage outcomes
+runs/                   committed summaries, one directory per pin
 ```
 
 ## Labels

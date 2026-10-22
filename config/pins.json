@@ -8,8 +8,8 @@
     "malicious": "trustsight/tests/fixtures/malicious"
   },
   "corpus_lock_sha256": "1f163fa4cede790d3da66c4f94d50a032bd1fc79e12bb4885bade816bb421040",
-  "harness_sha": "1315fb9372b1ab123be330ddcc7c78a9689787c7",
-  "harness_version": "v2.0.0-60-g1315fb9",
-  "trustsight_sha": "1a77c666fc0384be6c44708252eaf1216fca5fd8",
-  "trustsight_version": "v0.22.0-39-g1a77c66"
+  "harness_sha": "034e6a824691ed24348307ce090de330716be0aa",
+  "harness_version": "v2.0.0-62-g034e6a8",
+  "trustsight_sha": "fbe90d92ccc1a64b532f0f1b119a80021af393d0",
+  "trustsight_version": "v0.22.0-42-gfbe90d9"
 }

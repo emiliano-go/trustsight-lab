@@ -11,6 +11,17 @@ from lab.labels import build
 ROOT = Path(__file__).resolve().parents[2]
 
 
+def _has_fp_reports() -> bool:
+    return bool(reports.load_reports(ROOT / "trustsight-harness"))
+
+
+requires_fp_reports = pytest.mark.skipif(
+    not _has_fp_reports(),
+    reason="the adjudicated FP report corpus is not checked out",
+)
+
+
+@requires_fp_reports
 def test_fp_report_labels_are_counted():
     rows = reports.load_reports(ROOT / "trustsight-harness")
     verdicts = {}
@@ -21,6 +32,7 @@ def test_fp_report_labels_are_counted():
     assert all(row["rule_id"] for row in rows)
 
 
+@requires_fp_reports
 def test_labels_keep_benign_findings_out_of_the_fp_class():
     rows = build.build(ROOT / "trustsight", ROOT / "trustsight-harness")
     tally = build.counts(rows)
@@ -88,3 +100,19 @@ def test_merge_weak_reads_only_the_named_file(tmp_path):
     assert len(rows) == 1
     assert rows[0]["label"] == "weak_fp"
     assert build.merge_weak([], tmp_path / "missing.jsonl") == []
+
+
+def test_bypass_fixtures_recurse_into_export_dirs(tmp_path):
+    """The exporter writes into a subdirectory; a top-level glob used to
+    report an empty recall corpus."""
+    nested = tmp_path / "fixtures-out" / "fixtures-gaps"
+    nested.mkdir(parents=True)
+    (nested / "a.expected.json").write_text(json.dumps({
+        "provenance": {"campaign": "wave3"},
+    }))
+    (nested / "a.diff").write_text("--- a/PKGBUILD\n+++ b/PKGBUILD\n")
+
+    rows = corpora.bypass_fixtures(tmp_path)
+    assert len(rows) == 1
+    assert rows[0]["path"].endswith("a.diff")
+    assert rows[0]["group"] == "wave3"

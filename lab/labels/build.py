@@ -53,7 +53,13 @@ def report_labels(harness_root: Path) -> list[dict]:
             continue
         if label == "hard_fp" and (report.get("confidence") or 0) < 0.9:
             continue
-        rows.append({**report, "label": label})
+        row = {**report, "label": label}
+        if label == "hard_fp":
+            # A hard FP is only actionable when its bytes can be re-scored.
+            # Keep the row either way, but make the gap countable instead of
+            # letting an unbacked label into the precision target.
+            row["reproducer_present"] = bool(report.get("corpus_paths"))
+        rows.append(row)
     return rows
 
 
@@ -71,3 +77,20 @@ def counts(rows: list[dict]) -> dict[str, int]:
     for row in rows:
         tally[row["label"]] = tally.get(row["label"], 0) + 1
     return tally
+
+
+def audit(rows: list[dict]) -> dict:
+    """How much of the precision target can actually be re-measured."""
+
+    hard = [row for row in rows if row.get("label") == "hard_fp"]
+    return {
+        "hard_fp": len(hard),
+        "missing_reproducer": sorted(
+            row.get("package", row.get("report_path", ""))
+            for row in hard if not row.get("reproducer_present")
+        ),
+        "missing_fingerprint": sorted(
+            row.get("package", row.get("report_path", ""))
+            for row in hard if not row.get("config_fingerprint")
+        ),
+    }
