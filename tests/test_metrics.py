@@ -63,3 +63,12 @@ def test_baseline_flag_rate_is_honoured():
     ]
     verdict = metrics.evaluate(results, baseline={"benign_flag_rate": 0.05})
     assert not verdict["passed"]
+
+
+def test_benign_human_line_is_parsed():
+    parsed = metrics.parse_benign(
+        "264 of 3739 benign diffs flagged at threshold 20 (rate 0.0706)."
+    )
+    assert parsed == {
+        "flagged": 264, "scanned": 3739, "threshold": 20, "estimate": 0.0706,
+    }

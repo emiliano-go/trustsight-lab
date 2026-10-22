@@ -21,7 +21,21 @@ def _json(text: str):
 def parse_benign(text: str) -> dict | None:
     doc = _json(text)
     if not isinstance(doc, dict):
-        return None
+        import re
+
+        match = re.search(
+            r"(\d+) of (\d+) benign diffs flagged at threshold (\d+) "
+            r"\(rate ([\d.]+)\)",
+            text,
+        )
+        if not match:
+            return None
+        return {
+            "flagged": int(match.group(1)),
+            "scanned": int(match.group(2)),
+            "threshold": int(match.group(3)),
+            "estimate": float(match.group(4)),
+        }
     rate = doc.get("flag_rate") or {}
     return {
         "scanned": doc.get("scanned"),
