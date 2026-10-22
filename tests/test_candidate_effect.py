@@ -1,13 +1,15 @@
 import subprocess
-import sys
 import tempfile
 from pathlib import Path
+
+import pytest
 
 from lab.candidates import known
 from lab.validate import runner
 
 ROOT = Path(__file__).resolve().parents[2]
 TRUSTSIGHT = ROOT / "trustsight"
+PYTHON = TRUSTSIGHT / ".venv" / "bin" / "python"
 
 DIFF = """\
 --- a/PKGBUILD
@@ -27,7 +29,7 @@ print(extract_urls_from_diff({diff!r}).added_urls)
 def _added_urls(tree: Path) -> str:
     env = {"PYTHONPATH": str(tree / "src"), "PATH": "/usr/bin:/bin"}
     completed = subprocess.run(
-        [sys.executable, "-c", PROBE.format(diff=DIFF)],
+        [str(PYTHON), "-c", PROBE.format(diff=DIFF)],
         env=env,
         text=True,
         capture_output=True,
@@ -37,6 +39,7 @@ def _added_urls(tree: Path) -> str:
     return completed.stdout.strip()
 
 
+@pytest.mark.skipif(not PYTHON.is_file(), reason="trustsight venv is not present")
 def test_novelty_template_stops_scoring_the_url_scalar():
     candidate = known.for_predicate("NOVELTY", "misclassified=true", TRUSTSIGHT)
     tree = runner.worktree(TRUSTSIGHT, Path(tempfile.mkdtemp()) / "tree")
@@ -47,5 +50,6 @@ def test_novelty_template_stops_scoring_the_url_scalar():
         runner.remove_worktree(TRUSTSIGHT, tree)
 
 
+@pytest.mark.skipif(not PYTHON.is_file(), reason="trustsight venv is not present")
 def test_unpatched_extractor_still_harvests_the_url_scalar():
     assert "https://new.example" in _added_urls(TRUSTSIGHT)

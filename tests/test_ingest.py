@@ -3,6 +3,8 @@ import json
 import sqlite3
 from pathlib import Path
 
+import pytest
+
 from lab.ingest import corpora, reports, watcher
 from lab.labels import build
 
@@ -28,6 +30,10 @@ def test_labels_keep_benign_findings_out_of_the_fp_class():
                if "verdict" in row)
 
 
+@pytest.mark.skipif(
+    not (ROOT / "trustsight" / "tests" / "fixtures" / "benign-corpus").is_dir(),
+    reason="the locked benign corpus is not checked out",
+)
 def test_corpus_manifest_matches_the_locked_corpus():
     doc = corpora.manifest(ROOT / "trustsight", ROOT / "trustsight-harness")
     assert doc["counts"]["benign"] == 3739

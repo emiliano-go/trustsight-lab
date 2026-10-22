@@ -1,0 +1,27 @@
+name: tests
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: trustsight-lab
+      - uses: actions/checkout@v4
+        with:
+          repository: emiliano-go/trustsight
+          path: trustsight
+      - uses: actions/checkout@v4
+        with:
+          repository: emiliano-go/trustsight-harness
+          path: trustsight-harness
+      - uses: astral-sh/setup-uv@v5
+      - run: uv sync --project trustsight
+      - run: uv sync --project trustsight-harness
+      - run: uv run --with pytest pytest -q
+        working-directory: trustsight-lab
+      - run: uv run --with ruff ruff check lab tests
+        working-directory: trustsight-lab
