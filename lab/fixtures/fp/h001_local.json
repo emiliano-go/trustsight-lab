@@ -1,0 +1,12 @@
+{
+  "id": "h001-local",
+  "rule_id": "H001",
+  "old": "pkgname=h001-demo\npkgver=1.0\npkgrel=1\nsource=('fix.patch')\nsha256sums=('abc')\n",
+  "new": "pkgname=h001-demo\npkgver=1.0\npkgrel=1\nsource=('fix.patch')\nsha256sums=('SKIP')\n",
+  "unpatched": "HIGH",
+  "patched": "INFO",
+  "candidate": [
+    "H001",
+    "local_skip_only"
+  ]
+}

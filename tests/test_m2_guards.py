@@ -106,3 +106,116 @@ def test_h001_guard_keeps_the_remote_skip_twin():
         runner.remove_worktree(TRUSTSIGHT, tree)
     assert ["H001", "INFO"] in result["h001_local"]
     assert ["H001", "HIGH"] in result["h001_remote"]
+
+
+HELPER_PROBE = r"""
+import json
+from trustsight.analysis.dependencies import _same_upstream_name
+from trustsight.analysis.structural._engine import _dedup_moved_refs
+
+recipe = '''pkgname=odinls-bin
+pkgver=1.0
+pkgrel=1
+url="https://github.com/dnbln/ols"
+provides=('ols')
+'''
+findings = [
+    {"rule_id": "H101", "params": {
+        "old_url": "https://github.com/dnbln/ols.git",
+        "new_url": "https://github.com/dnbln/ols.git#branch=dev"}},
+    {"rule_id": "H033", "params": {"repo": "github.com/dnbln/ols"}},
+    {"rule_id": "H033", "params": {"repo": "github.com/other/project"}},
+]
+_dedup_moved_refs(findings)
+print(json.dumps({
+    "same": _same_upstream_name(recipe, "ols"),
+    "different": _same_upstream_name(recipe, "firefox"),
+    "rules": [item["rule_id"] + ":" + str((item.get("params") or {}).get("repo", ""))
+              for item in findings],
+}))
+"""
+
+
+@pytest.mark.skipif(not PYTHON.is_file(), reason="trustsight venv is not present")
+def test_same_upstream_and_dedup_helpers():
+    tree = runner.worktree(TRUSTSIGHT, Path(tempfile.mkdtemp()) / "tree")
+    try:
+        runner.apply_patch(
+            tree, known.for_predicate("H064", "same_upstream=true", TRUSTSIGHT).patch
+        )
+        runner.apply_patch(
+            tree,
+            known.for_predicate("H101", "ref_double_count=true", TRUSTSIGHT).patch,
+        )
+        env = {"PYTHONPATH": str(tree / "src"), "PATH": "/usr/bin:/bin"}
+        completed = subprocess.run(
+            [str(PYTHON), "-c", HELPER_PROBE],
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    finally:
+        runner.remove_worktree(TRUSTSIGHT, tree)
+    assert completed.returncode == 0, completed.stderr
+    import json
+
+    result = json.loads(completed.stdout)
+    assert result["same"] is True
+    assert result["different"] is False
+    assert result["rules"] == ["H101:", "H033:github.com/other/project"]
+
+
+C001_PROBE = r'''
+import difflib
+from trustsight.analysis.structural import _structural_findings
+from trustsight.differ._sources import extract_urls_from_diff
+import trustsight.analysis.structural._engine as engine
+
+old = """pkgname=demo
+pkgver=1.0
+pkgrel=1
+source=("https://example.org/demo-1.0.tar.gz")
+sha256sums=('aaa')
+"""
+new = old.replace("'aaa'", "'bbb'")
+diff = ''.join(difflib.unified_diff(
+    old.splitlines(True), new.splitlines(True), 'a/PKGBUILD', 'b/PKGBUILD'))
+changes = extract_urls_from_diff(diff)
+out = {}
+for value in (False, True):
+    engine._upstream_hash_corroborated = lambda text, value=value: value
+    findings = engine._structural_findings(
+        diff, changes, package_name="demo", current_text=new)
+    out[str(value)] = [
+        [item["rule_id"], item["severity"], item.get("weight_override")]
+        for item in findings if item["rule_id"] == "C001"
+    ]
+print(__import__("json").dumps(out))
+'''
+
+
+@pytest.mark.skipif(not PYTHON.is_file(), reason="trustsight venv is not present")
+def test_c001_corroboration_changes_severity():
+    tree = runner.worktree(TRUSTSIGHT, Path(tempfile.mkdtemp()) / "tree")
+    try:
+        runner.apply_patch(
+            tree, known.for_predicate("C001", "checksum_only=true", TRUSTSIGHT).patch
+        )
+        env = {"PYTHONPATH": str(tree / "src"), "PATH": "/usr/bin:/bin"}
+        completed = subprocess.run(
+            [str(PYTHON), "-c", C001_PROBE],
+            env=env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+    finally:
+        runner.remove_worktree(TRUSTSIGHT, tree)
+    assert completed.returncode == 0, completed.stderr
+    import json
+
+    result = json.loads(completed.stdout)
+    assert result["False"][0][1] == "HIGH"
+    assert result["True"][0][1] == "INFO"
+    assert result["True"][0][2] == 0

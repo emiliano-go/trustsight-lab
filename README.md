@@ -32,6 +32,7 @@ uv run python -m lab.cli labels
 uv run python -m lab.cli mine --out reports/predicates.json
 uv run python -m lab.cli gaps --out reports/gaps.json
 uv run python -m lab.cli refresh
+uv run python -m lab.cli diagnose pearson --sample 4
 uv run python -m lab.cli report
 uv run pytest
 ```
@@ -51,6 +52,13 @@ container, and a full snapshot can be pulled and resumed:
 uv run python -m lab.cli snapshot --host contabo --container trustsight-watch
 uv run python -m lab.cli extract --db data/watcher.db --out data/watcher
 ```
+
+## Candidate templates
+
+Deterministic patches are rendered for C024 phantom installs, NOVELTY
+`url=` metadata, H001 local SKIPs, H064 and D004 same-upstream provides,
+H033/H101 double counting, and C001 checksum corroboration through a signed
+`upstream_hash` baseline. The lab never fetches a declared URL.
 
 ## Layout
 

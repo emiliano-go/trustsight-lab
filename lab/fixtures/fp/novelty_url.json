@@ -1,0 +1,12 @@
+{
+  "id": "novelty-url",
+  "rule_id": "SOURCE_BUCKET",
+  "old": "pkgname=novelty-demo\npkgver=1.0\npkgrel=1\nurl=\"https://old.example\"\nsource=(\"https://example.org/novelty-demo-1.0.tar.gz\")\nsha256sums=('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')\n",
+  "new": "pkgname=novelty-demo\npkgver=1.0\npkgrel=1\nurl=\"https://new.example\"\nsource=(\"https://example.org/novelty-demo-1.0.tar.gz\")\nsha256sums=('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')\n",
+  "unpatched": "find",
+  "patched": "absent",
+  "candidate": [
+    "NOVELTY",
+    "misclassified=true"
+  ]
+}

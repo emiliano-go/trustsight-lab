@@ -55,6 +55,7 @@ def _prepare(rows: list[dict], positives: tuple[str, ...]) -> dict[str, list[dic
 def mine(
     rows: list[dict],
     min_support: int = 1,
+    min_packages: int = 1,
     positives: tuple[str, ...] = ("hard_fp", "weak_fp"),
 ) -> list[dict]:
     """Rank predicates by FP count, with support and TP-but-benign retention."""
@@ -70,7 +71,10 @@ def mine(
                 continue
             fp = sum(1 for row in hits if row["label"] in positives)
             benign = sum(1 for row in hits if row["label"] == "tp_benign")
-            if not fp:
+            packages = sorted({
+                row.get("package", "") for row in hits if row.get("package")
+            })
+            if not fp or len(packages) < min_packages:
                 continue
             candidates.append(
                 {
@@ -82,10 +86,7 @@ def mine(
                     "fp_lift": round(fp / base_fp, 3),
                     "precision": round(fp / len(hits), 3),
                     "signatures": sorted({row["sig"] for row in hits}),
-                    "packages": sorted({
-                        row.get("package", "") for row in hits
-                        if row.get("package")
-                    }),
+                    "packages": packages,
                 }
             )
     candidates.sort(key=lambda row: (-row["fp"], -row["support"], row["rule_id"]))

@@ -1,0 +1,21 @@
+{
+  "id": "c024-phantom",
+  "rule_id": "C024",
+  "diff": "diff --git a/demo-bin.install b/demo-bin.install\nnew file mode 100644\n--- /dev/null\n+++ b/demo-bin.install\n@@ -0,0 +1 @@\n+post_install() { :; }\n",
+  "current": "pkgname=demo\npkgver=1.0\npkgrel=1\ninstall=demo.install\nsource=('demo.tar.gz')\nsha256sums=('abc')\n",
+  "unpatched": "find",
+  "patched": "absent",
+  "tree_present": [
+    "PKGBUILD",
+    "demo.install",
+    "demo-bin.install"
+  ],
+  "tree_absent": [
+    "PKGBUILD",
+    "demo.install"
+  ],
+  "candidate": [
+    "C024",
+    "phantom=true"
+  ]
+}

@@ -18,7 +18,7 @@ from pathlib import Path
 
 from ..ingest import corpora, reports
 
-CLASSES = ("hard_fp", "tp_benign", "tp", "bypass", "benign")
+CLASSES = ("hard_fp", "tp_benign", "tp", "bypass", "candidate_benign", "benign")
 
 
 def merge_weak(rows: list[dict], path) -> list[dict]:

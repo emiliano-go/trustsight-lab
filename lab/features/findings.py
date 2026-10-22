@@ -89,6 +89,8 @@ def build(
                 "history_id": row.get("id"),
                 "timestamp": row.get("timestamp"),
                 "snapshot_captured_at": snapshot.get("captured_at"),
+                "old_version": fact.get("old_version"),
+                "new_version": fact.get("new_version"),
                 "final_score": fact.get("final_score"),
                 "config_fingerprint": fact.get("config_fingerprint"),
                 "rule_id": rule,

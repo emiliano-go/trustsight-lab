@@ -22,3 +22,14 @@ def test_miner_recovers_the_known_report_predicates():
 def test_miner_never_proposes_a_predicate_without_an_fp():
     rows = build.build(ROOT / "trustsight", ROOT / "trustsight-harness")
     assert all(c["fp"] > 0 for c in predicate_miner.mine(rows))
+
+
+def test_strict_support_requires_distinct_packages():
+    rows = [
+        {"label": "weak_fp", "rule_id": "NOVELTY", "package": "a",
+         "checks": {"url_in_source": {"misclassified": True}}},
+        {"label": "weak_fp", "rule_id": "NOVELTY", "package": "b",
+         "checks": {"url_in_source": {"misclassified": True}}},
+    ]
+    assert predicate_miner.mine(rows, min_packages=1)
+    assert predicate_miner.mine(rows, min_packages=3) == []

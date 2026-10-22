@@ -36,6 +36,16 @@ def worktree(repo: Path, dest: Path, ref: str = "HEAD") -> Path:
     return dest
 
 
+def link_corpus(tree: Path, trustsight_root: Path) -> None:
+    """A worktree has no untracked benign corpus; link the real one in."""
+
+    source = trustsight_root / "tests" / "fixtures" / "benign-corpus"
+    target = tree / "tests" / "fixtures" / "benign-corpus"
+    if source.is_dir() and not target.exists():
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.symlink_to(source)
+
+
 def remove_worktree(repo: Path, dest: Path) -> None:
     subprocess.run(
         ["git", "-C", str(repo), "worktree", "remove", "--force", str(dest)],
@@ -106,6 +116,10 @@ def build_commands(
         if gates_json is not None:
             gates_argv += ["--json", str(gates_json)]
         commands.append(Command(gates_argv, tree, env, gates_json))
+    if tier >= 3:
+        commands.append(
+            Command([harness_python, "-m", "harness", "sweep"], harness_root, env)
+        )
     return commands
 
 
@@ -149,6 +163,7 @@ def validate_candidate(
     scratch = Path(tempfile.mkdtemp(prefix="trustsight-lab-"))
     tree = worktree(trustsight_root, scratch / "tree")
     try:
+        link_corpus(tree, trustsight_root)
         apply_patch(tree, candidate.patch)
         reproducers = []
         for report in candidate.reproducers:

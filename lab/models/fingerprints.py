@@ -16,6 +16,7 @@ def summarize(rows: list[dict]) -> list[dict]:
             "findings": 0,
             "packages": set(),
             "rules": Counter(),
+            "versions": Counter(),
             "contradictions": Counter(),
         }
     )
@@ -27,6 +28,8 @@ def summarize(rows: list[dict]) -> list[dict]:
             group["packages"].add(row["package"])
         if row.get("rule_id"):
             group["rules"][row["rule_id"]] += 1
+        if row.get("new_version"):
+            group["versions"][str(row["new_version"])] += 1
         contradiction = row.get("contradiction")
         if contradiction:
             group["contradictions"][contradiction.get("reason", "")] += 1
@@ -38,6 +41,7 @@ def summarize(rows: list[dict]) -> list[dict]:
                 "findings": group["findings"],
                 "packages": len(group["packages"]),
                 "top_rules": dict(group["rules"].most_common(10)),
+                "top_versions": dict(group["versions"].most_common(5)),
                 "contradictions": dict(group["contradictions"].most_common()),
             }
         )

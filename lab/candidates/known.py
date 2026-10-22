@@ -12,6 +12,8 @@ import difflib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from .extra import EXTRA as _EXTRA
+
 #: A patch may only touch watcher rule code or its tests, the same surface
 #: the harness code_fixes gate allows.
 ALLOWED_PREFIXES = ("src/trustsight/", "tests/")
@@ -162,6 +164,9 @@ def _recipe_skip_justification(recipe_text: str) -> str:
         "reproducers": ["benign/fp-2026-10-16"],
     },
 }
+
+
+TEMPLATES.update(_EXTRA)
 
 
 @dataclass

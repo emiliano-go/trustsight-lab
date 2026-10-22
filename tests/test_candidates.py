@@ -8,7 +8,15 @@ TRUSTSIGHT = ROOT / "trustsight"
 
 
 def test_known_templates_render_and_apply_cleanly():
-    for rule, predicate in (("C024", "phantom=true"), ("NOVELTY", "misclassified=true")):
+    cases = (
+        ("C024", "phantom=true"),
+        ("NOVELTY", "misclassified=true"),
+        ("H064", "same_upstream=true"),
+        ("D004", "same_upstream=true"),
+        ("H101", "ref_double_count=true"),
+        ("C001", "checksum_only=true"),
+    )
+    for rule, predicate in cases:
         candidate = known.for_predicate(rule, predicate, TRUSTSIGHT)
         assert candidate is not None
         assert candidate.patch.startswith("--- a/")

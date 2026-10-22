@@ -8,10 +8,10 @@ import tempfile
 from pathlib import Path
 
 from .candidates import known
-from .features import findings
+from .features import benign, findings
 from .ingest import corpora, reports, watcher
 from .labels import build, contradictions
-from .models import fingerprints, fp_ranker, gap_cluster, predicate_miner
+from .models import fingerprints, fp_ranker, gap_cluster, pearson, predicate_miner
 from .pins import DEFAULT_ROOT, read_pins, write_pins
 from .validate import runner
 
@@ -52,6 +52,12 @@ def cmd_corpora(args) -> int:
 def cmd_labels(args) -> int:
     root = _root(args.root)
     rows = build.build(root / "trustsight", root / "trustsight-harness")
+    if args.benign_sample:
+        rows += benign.findings(
+            root / "trustsight",
+            root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+            sample=args.benign_sample,
+        )
     out = Path(args.out) if args.out else DATA / "labels.jsonl"
     reports.write_jsonl(rows, out)
     print(json.dumps(build.counts(rows), indent=2, sort_keys=True))
@@ -62,7 +68,11 @@ def cmd_mine(args) -> int:
     rows = _read_jsonl(Path(args.labels))
     if args.contradictions:
         rows = build.merge_weak(rows, args.contradictions)
-    candidates = predicate_miner.mine(rows, min_support=args.min_support)
+    candidates = predicate_miner.mine(
+        rows,
+        min_support=args.min_support,
+        min_packages=args.min_packages,
+    )
     out = Path(args.out) if args.out else REPORTS / "predicates.json"
     _write_json(out, candidates)
     print(json.dumps(predicate_miner.summarize(candidates), indent=2, sort_keys=True))
@@ -158,6 +168,12 @@ def cmd_refresh(args) -> int:
     pins = read_pins(root)
     write_pins(Path("config/pins.json"), pins)
     rows = build.build(root / "trustsight", root / "trustsight-harness")
+    if args.benign_sample:
+        rows += benign.findings(
+            root / "trustsight",
+            root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+            sample=args.benign_sample,
+        )
     reports.write_jsonl(rows, DATA / "labels.jsonl")
     if args.extract:
         watcher.extract(
@@ -179,8 +195,19 @@ def cmd_refresh(args) -> int:
         args.findings = str(DATA / "contradictions.jsonl")
     if weak_path:
         rows = build.merge_weak(rows, weak_path)
-    predicates = predicate_miner.mine(rows, min_support=args.min_support)
+    predicates = predicate_miner.mine(
+        rows,
+        min_support=1,
+        min_packages=1,
+        positives=("hard_fp",),
+    )
     _write_json(REPORTS / "predicates.json", predicates)
+    strict = predicate_miner.mine(
+        rows,
+        min_support=args.min_support,
+        min_packages=args.min_packages,
+    )
+    _write_json(REPORTS / "predicates_strict.json", strict)
     _write_json(REPORTS / "rank.json", fp_ranker.rank_groups(rows))
     _write_json(
         REPORTS / "rank_by_fingerprint.json",
@@ -201,11 +228,39 @@ def cmd_refresh(args) -> int:
         "pins": pins.to_dict(),
         "labels": build.counts(rows),
         "predicates": len(predicates),
+        "predicates_strict": len(strict),
         "gaps": len(gaps),
         "fingerprints": fingerprint_rows,
     }
     _write_json(REPORTS / "refresh.json", summary)
     print(json.dumps(summary, indent=2, sort_keys=True))
+    return 0
+
+
+def cmd_diagnose(args) -> int:
+    root = _root(args.root)
+    if args.rev:
+        scratch = Path(tempfile.mkdtemp(prefix="trustsight-lab-pearson-"))
+        tree = runner.worktree(root / "trustsight", scratch / "tree", args.rev)
+        try:
+            rows = benign.scan(
+                tree,
+                root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+                sample=args.sample,
+                python=root / "trustsight" / ".venv" / "bin" / "python",
+            )
+        finally:
+            runner.remove_worktree(root / "trustsight", tree)
+    else:
+        rows = benign.scan(
+            root / "trustsight",
+            root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+            sample=args.sample,
+        )
+    result = pearson.diagnose(rows)
+    out = Path(args.out) if args.out else REPORTS / "pearson.json"
+    _write_json(out, result)
+    print(json.dumps(result, indent=2, sort_keys=True))
     return 0
 
 
@@ -261,6 +316,7 @@ def cmd_baseline(args) -> int:
     scratch = Path(tempfile.mkdtemp(prefix="trustsight-lab-base-"))
     tree = runner.worktree(root / "trustsight", scratch / "tree")
     try:
+        runner.link_corpus(tree, root / "trustsight")
         gates_json = scratch / "gates.json"
         commands = runner.build_commands(
             tree,
@@ -361,12 +417,14 @@ def build_parser() -> argparse.ArgumentParser:
 
     labels = sub.add_parser("labels", help="build the label set")
     labels.add_argument("--out")
+    labels.add_argument("--benign-sample", type=int, default=0)
     labels.set_defaults(func=cmd_labels)
 
     mine = sub.add_parser("mine", help="rank evidence predicates per rule")
     mine.add_argument("--labels", default=str(DATA / "labels.jsonl"))
     mine.add_argument("--out")
     mine.add_argument("--min-support", type=int, default=1)
+    mine.add_argument("--min-packages", type=int, default=1)
     mine.add_argument("--contradictions", help="weak labels from the watcher sample")
     mine.set_defaults(func=cmd_mine)
 
@@ -403,13 +461,22 @@ def build_parser() -> argparse.ArgumentParser:
     refresh = sub.add_parser("refresh", help="re-pin, relabel, and re-rank")
     refresh.add_argument("--findings", default=str(DATA / "contradictions_sample.jsonl"))
     refresh.add_argument("--contradictions", default=str(DATA / "contradictions_sample.jsonl"))
-    refresh.add_argument("--min-support", type=int, default=2)
+    refresh.add_argument("--min-support", type=int, default=20)
+    refresh.add_argument("--min-packages", type=int, default=3)
+    refresh.add_argument("--benign-sample", type=int, default=0)
     refresh.add_argument("--extract", action="store_true")
     refresh.add_argument("--build-findings", action="store_true")
     refresh.add_argument("--db", default=str(DATA / "watcher.db"))
     refresh.add_argument("--watcher-out", default=str(DATA / "watcher"))
     refresh.add_argument("--limit", type=int)
     refresh.set_defaults(func=cmd_refresh)
+
+    diag = sub.add_parser("diagnose", help="diagnose a calibration gate")
+    diag.add_argument("which", choices=["pearson"])
+    diag.add_argument("--sample", type=int, default=4)
+    diag.add_argument("--rev", help="run against a git revision in a worktree")
+    diag.add_argument("--out")
+    diag.set_defaults(func=cmd_diagnose)
 
     rep = sub.add_parser("report", help="render the markdown summary")
     rep.add_argument("--out")

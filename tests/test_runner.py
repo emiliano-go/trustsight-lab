@@ -37,3 +37,26 @@ def test_commands_point_the_worker_at_the_patched_src(tmp_path):
     for command in commands:
         assert str(tmp_path / "tree" / "src") in command.env["PYTHONPATH"]
     assert candidate is not None
+
+
+def test_tier_three_adds_the_campaign_sweep(tmp_path):
+    commands = runner.build_commands(
+        tmp_path / "tree",
+        ROOT / "trustsight-harness",
+        tier=3,
+        benign_corpus=ROOT / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+    )
+    assert any("sweep" in command.argv for command in commands)
+
+
+def test_link_corpus_only_links_an_existing_corpus(tmp_path):
+    source = tmp_path / "source"
+    (source / "tests" / "fixtures" / "benign-corpus").mkdir(parents=True)
+    tree = tmp_path / "tree"
+    tree.mkdir()
+    runner.link_corpus(tree, source)
+    assert (tree / "tests" / "fixtures" / "benign-corpus").is_symlink()
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    runner.link_corpus(empty, empty)
+    assert not (empty / "tests" / "fixtures" / "benign-corpus").exists()
