@@ -183,6 +183,15 @@ def cmd_refresh(args) -> int:
             limit=args.limit,
             with_diffs=False,
         )
+    if args.build_findings:
+        built = findings.build(
+            Path(args.watcher_out),
+            limit=args.limit,
+            root=root,
+        )
+        annotations = contradictions.annotate(built)
+        findings.write(annotations, DATA / "contradictions.jsonl")
+        args.findings = str(DATA / "contradictions.jsonl")
     fingerprint_rows = []
     findings_path = Path(args.findings) if args.findings else None
     if findings_path and findings_path.is_file():
@@ -355,6 +364,7 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--contradictions", default=str(DATA / "contradictions_sample.jsonl"))
     refresh.add_argument("--min-support", type=int, default=2)
     refresh.add_argument("--extract", action="store_true")
+    refresh.add_argument("--build-findings", action="store_true")
     refresh.add_argument("--db", default=str(DATA / "watcher.db"))
     refresh.add_argument("--watcher-out", default=str(DATA / "watcher"))
     refresh.add_argument("--limit", type=int)
