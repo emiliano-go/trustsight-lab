@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import tempfile
 from pathlib import Path
 
 from .candidates import known
@@ -60,9 +61,7 @@ def cmd_labels(args) -> int:
 def cmd_mine(args) -> int:
     rows = _read_jsonl(Path(args.labels))
     if args.contradictions:
-        for row in _read_jsonl(Path(args.contradictions)):
-            if row.get("contradiction"):
-                rows.append({**row, "label": "weak_fp"})
+        rows = build.merge_weak(rows, args.contradictions)
     candidates = predicate_miner.mine(rows, min_support=args.min_support)
     out = Path(args.out) if args.out else REPORTS / "predicates.json"
     _write_json(out, candidates)
@@ -146,6 +145,7 @@ def cmd_candidates(args) -> int:
             }
         else:
             doc = {**known.to_dict(candidate), "status": "ready"}
+            doc["linked_findings"] = item.get("packages", [])
         path = out_dir / f"{doc.get('id', item['rule_id'] + '-' + item['predicate'].replace('=', '-'))}.json"
         _write_json(path, doc)
         written.append(str(path))
@@ -159,10 +159,26 @@ def cmd_refresh(args) -> int:
     write_pins(Path("config/pins.json"), pins)
     rows = build.build(root / "trustsight", root / "trustsight-harness")
     reports.write_jsonl(rows, DATA / "labels.jsonl")
-    if args.contradictions:
-        for row in _read_jsonl(Path(args.contradictions)):
-            if row.get("contradiction"):
-                rows.append({**row, "label": "weak_fp"})
+    if args.extract:
+        watcher.extract(
+            Path(args.db),
+            Path(args.watcher_out),
+            limit=args.limit,
+            with_diffs=False,
+        )
+    weak_path = args.contradictions
+    if args.build_findings:
+        built = findings.build(
+            Path(args.watcher_out),
+            limit=args.limit,
+            root=root,
+        )
+        annotations = contradictions.annotate(built)
+        findings.write(annotations, DATA / "contradictions.jsonl")
+        weak_path = str(DATA / "contradictions.jsonl")
+        args.findings = str(DATA / "contradictions.jsonl")
+    if weak_path:
+        rows = build.merge_weak(rows, weak_path)
     predicates = predicate_miner.mine(rows, min_support=args.min_support)
     _write_json(REPORTS / "predicates.json", predicates)
     _write_json(REPORTS / "rank.json", fp_ranker.rank_groups(rows))
@@ -176,22 +192,6 @@ def cmd_refresh(args) -> int:
         rules_by_campaign=gap_cluster.campaign_rules(root / "trustsight-harness"),
     )
     _write_json(REPORTS / "gaps.json", gaps)
-    if args.extract:
-        watcher.extract(
-            Path(args.db),
-            Path(args.watcher_out),
-            limit=args.limit,
-            with_diffs=False,
-        )
-    if args.build_findings:
-        built = findings.build(
-            Path(args.watcher_out),
-            limit=args.limit,
-            root=root,
-        )
-        annotations = contradictions.annotate(built)
-        findings.write(annotations, DATA / "contradictions.jsonl")
-        args.findings = str(DATA / "contradictions.jsonl")
     fingerprint_rows = []
     findings_path = Path(args.findings) if args.findings else None
     if findings_path and findings_path.is_file():
@@ -254,6 +254,42 @@ def cmd_report(args) -> int:
     return 0
 
 
+def cmd_baseline(args) -> int:
+    from .validate import metrics
+
+    root = _root(args.root)
+    scratch = Path(tempfile.mkdtemp(prefix="trustsight-lab-base-"))
+    tree = runner.worktree(root / "trustsight", scratch / "tree")
+    try:
+        gates_json = scratch / "gates.json"
+        commands = runner.build_commands(
+            tree,
+            root / "trustsight-harness",
+            tier=args.tier,
+            benign_corpus=root / "trustsight" / "tests" / "fixtures" / "benign-corpus",
+            trustsight_root=root / "trustsight",
+            gates_json=gates_json if args.tier >= 2 else None,
+        )
+        results = runner.run_commands(commands)
+        benign = None
+        for item in results:
+            if "benign" in item["argv"]:
+                benign = metrics.parse_benign(item["stdout"])
+        gates = json.loads(gates_json.read_text()) if gates_json.is_file() else []
+        by_name = {gate.get("gate"): gate for gate in gates}
+        doc = {
+            "benign_flag_rate": (benign or {}).get("estimate"),
+            "benign_flagged": (benign or {}).get("flagged"),
+            "gates": by_name,
+            "instrument": read_pins(root).to_dict(),
+        }
+        _write_json(Path(args.out), doc)
+        print(json.dumps(doc, indent=2, sort_keys=True))
+        return 0
+    finally:
+        runner.remove_worktree(root / "trustsight", tree)
+
+
 def cmd_validate(args) -> int:
     root = _root(args.root)
     doc = json.loads(Path(args.candidate).read_text())
@@ -270,12 +306,17 @@ def cmd_validate(args) -> int:
         tp_twin=doc["tp_twin"],
         reproducers=doc.get("reproducers") or [],
     )
+    baseline = None
+    baseline_path = Path(args.baseline) if args.baseline else None
+    if baseline_path and baseline_path.is_file():
+        baseline = json.loads(baseline_path.read_text())
     result = runner.validate_candidate(
         candidate,
         trustsight_root=root / "trustsight",
         harness_root=root / "trustsight-harness",
         tier=args.tier,
         dry_run=not args.execute,
+        baseline=baseline,
     )
     print(json.dumps(result, indent=2))
     if args.execute is False:
@@ -378,7 +419,13 @@ def build_parser() -> argparse.ArgumentParser:
     val.add_argument("--candidate", required=True)
     val.add_argument("--tier", type=int, default=1)
     val.add_argument("--execute", action="store_true")
+    val.add_argument("--baseline", default="reports/baseline.json")
     val.set_defaults(func=cmd_validate)
+
+    base = sub.add_parser("baseline", help="measure the unpatched instrument")
+    base.add_argument("--tier", type=int, default=2)
+    base.add_argument("--out", default="reports/baseline.json")
+    base.set_defaults(func=cmd_baseline)
 
     snap = sub.add_parser("snapshot", help="copy the watcher database")
     snap.add_argument("--db", default="/data/.local/share/trustsight/trustsight.db")

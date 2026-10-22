@@ -42,7 +42,12 @@ def _prepare(rows: list[dict], positives: tuple[str, ...]) -> dict[str, list[dic
             continue
         fields = flatten(row.get("checks"))
         by_rule[row["rule_id"]].append(
-            {"label": row["label"], "fields": fields, "sig": signature(fields)}
+            {
+                "label": row["label"],
+                "fields": fields,
+                "sig": signature(fields),
+                "package": row.get("package", ""),
+            }
         )
     return by_rule
 
@@ -77,6 +82,10 @@ def mine(
                     "fp_lift": round(fp / base_fp, 3),
                     "precision": round(fp / len(hits), 3),
                     "signatures": sorted({row["sig"] for row in hits}),
+                    "packages": sorted({
+                        row.get("package", "") for row in hits
+                        if row.get("package")
+                    }),
                 }
             )
     candidates.sort(key=lambda row: (-row["fp"], -row["support"], row["rule_id"]))

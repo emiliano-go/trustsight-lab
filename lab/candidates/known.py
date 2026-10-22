@@ -12,6 +12,12 @@ import difflib
 from dataclasses import dataclass, field
 from pathlib import Path
 
+#: A patch may only touch watcher rule code or its tests, the same surface
+#: the harness code_fixes gate allows.
+ALLOWED_PREFIXES = ("src/trustsight/", "tests/")
+MAX_PATCH_CHARS = 32 * 1024
+MAX_ADDED_LINES = 400
+
 #: (rule, predicate) -> fix. The predicate names come from predicate_miner.
 TEMPLATES: dict[tuple[str, str], dict] = {
     ("C024", "phantom=true"): {
@@ -168,7 +174,34 @@ class Candidate:
     patch: str
     rationale: str
     tp_twin: str
+    linked_findings: list[str] = field(default_factory=list)
     reproducers: list[str] = field(default_factory=list)
+
+
+def check_target(relative: str) -> str:
+    if not isinstance(relative, str) or not relative:
+        raise ValueError("candidate target must be a non-empty string")
+    if relative.startswith("/") or "\\" in relative or ".." in relative.split("/"):
+        raise ValueError(f"candidate target escapes the repo: {relative!r}")
+    if not relative.startswith(ALLOWED_PREFIXES):
+        raise ValueError(
+            f"candidate target outside {ALLOWED_PREFIXES}: {relative!r}"
+        )
+    return relative
+
+
+def check_patch(patch: str) -> str:
+    if len(patch) > MAX_PATCH_CHARS:
+        raise ValueError(f"candidate patch exceeds {MAX_PATCH_CHARS} chars")
+    added = sum(
+        1 for line in patch.splitlines()
+        if line.startswith("+") and not line.startswith("+++")
+    )
+    if added == 0:
+        raise ValueError("candidate patch adds no lines")
+    if added > MAX_ADDED_LINES:
+        raise ValueError(f"candidate patch exceeds {MAX_ADDED_LINES} added lines")
+    return patch
 
 
 def _unified(relative: str, before: str, after: str) -> str:
@@ -187,6 +220,7 @@ def render(template: dict, trustsight_root: Path) -> Candidate:
     patches = []
     targets = []
     for relative, old, new in template["edits"]:
+        check_target(relative)
         path = trustsight_root / relative
         text = path.read_text()
         if old not in text:
@@ -194,15 +228,18 @@ def render(template: dict, trustsight_root: Path) -> Candidate:
         patches.append(_unified(relative, text, text.replace(old, new, 1)))
         if relative not in targets:
             targets.append(relative)
+    patch = "".join(patches)
+    check_patch(patch)
     return Candidate(
         id=template["id"],
         rule_id="",
         predicate="",
         lever=template["lever"],
         targets=targets,
-        patch="".join(patches),
+        patch=patch,
         rationale=template["rationale"],
         tp_twin=template["tp_twin"],
+        linked_findings=list(template.get("linked_findings") or []),
         reproducers=list(template.get("reproducers") or []),
     )
 
@@ -238,5 +275,6 @@ def to_dict(candidate: Candidate) -> dict:
         "patch": candidate.patch,
         "rationale": candidate.rationale,
         "tp_twin": candidate.tp_twin,
+        "linked_findings": candidate.linked_findings,
         "reproducers": candidate.reproducers,
     }

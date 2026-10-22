@@ -24,8 +24,8 @@ def test_fp_report_labels_are_counted():
 def test_labels_keep_benign_findings_out_of_the_fp_class():
     rows = build.build(ROOT / "trustsight", ROOT / "trustsight-harness")
     tally = build.counts(rows)
-    assert tally["hard_fp"] > 0
-    assert tally["tp_benign"] > tally["hard_fp"]
+    assert tally["hard_fp"] == 29
+    assert tally["tp_benign"] == 102
     assert all(row["label"] != "hard_fp" or row["verdict"] == "FP" for row in rows
                if "verdict" in row)
 
@@ -74,3 +74,17 @@ def test_extract_normalises_history(tmp_path):
     assert row["config_fingerprint"] == "sha256:x"
     assert row["score_breakdown"][0]["rule_id"] == "R007"
     assert "raw_diff" not in row
+
+
+def test_merge_weak_reads_only_the_named_file(tmp_path):
+    from lab.labels import build
+
+    path = tmp_path / "weak.jsonl"
+    path.write_text(
+        '{"rule_id": "NOVELTY", "contradiction": {"reason": "x"}}\n'
+        '{"rule_id": "C024"}\n'
+    )
+    rows = build.merge_weak([], path)
+    assert len(rows) == 1
+    assert rows[0]["label"] == "weak_fp"
+    assert build.merge_weak([], tmp_path / "missing.jsonl") == []

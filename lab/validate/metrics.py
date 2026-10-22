@@ -48,7 +48,13 @@ def parse_fp_verify(text: str) -> dict | None:
     }
 
 
-def evaluate(results: list[dict], *, baseline_flag_rate: float | None = None) -> dict:
+def evaluate(
+    results: list[dict],
+    *,
+    baseline_flag_rate: float | None = None,
+    baseline: dict | None = None,
+    gates: list[dict] | None = None,
+) -> dict:
     failures = []
     benign = None
     verified = None
@@ -59,6 +65,9 @@ def evaluate(results: list[dict], *, baseline_flag_rate: float | None = None) ->
             benign = parse_benign(result["stdout"]) or benign
         if "fp_verify" in result["argv"]:
             verified = parse_fp_verify(result["stdout"]) or verified
+    baseline = baseline or {}
+    if baseline_flag_rate is None:
+        baseline_flag_rate = baseline.get("benign_flag_rate")
     if (
         benign
         and baseline_flag_rate is not None
@@ -68,6 +77,28 @@ def evaluate(results: list[dict], *, baseline_flag_rate: float | None = None) ->
         failures.append(
             f"benign flag rate rose: {benign['estimate']} > {baseline_flag_rate}"
         )
+    recall_delta = None
+    if gates:
+        by_name = {gate.get("gate"): gate for gate in gates}
+        recall = by_name.get("labelled attacks still detected")
+        separation = by_name.get("benign_p95 < malicious_p5")
+        if recall is not None and not recall.get("passed", False):
+            failures.append("labelled attacks no longer detected")
+        if separation is not None and not separation.get("passed", False):
+            failures.append("benign/malicious separation failed")
+        if recall is not None:
+            previous = (
+                baseline.get("gates", {})
+                .get("labelled attacks still detected", {})
+                .get("measured")
+            )
+            current = recall.get("measured")
+            if isinstance(current, int) and isinstance(previous, int):
+                recall_delta = current - previous
+                if recall_delta > 0:
+                    failures.append(
+                        f"recall loss: {recall_delta} more fixtures missed"
+                    )
     if verified is not None:
         if not verified["all_verified"]:
             failures.append("fp_verify did not verify every reproducer")
@@ -80,4 +111,5 @@ def evaluate(results: list[dict], *, baseline_flag_rate: float | None = None) ->
         "failures": failures,
         "benign": benign,
         "fp_verify": verified,
+        "recall_delta": recall_delta,
     }

@@ -32,3 +32,34 @@ def test_a_still_flagged_reproducer_fails():
 def test_a_failed_command_fails():
     verdict = metrics.evaluate([_result(["python", "x"], 2, "")])
     assert not verdict["passed"]
+
+
+def test_recall_and_separation_gates_fail_the_candidate():
+    gates = [
+        {"gate": "labelled attacks still detected", "passed": False, "measured": 2},
+        {"gate": "benign_p95 < malicious_p5", "passed": True, "measured": {}},
+    ]
+    verdict = metrics.evaluate([], gates=gates)
+    assert not verdict["passed"]
+    assert any("labelled attacks" in item for item in verdict["failures"])
+
+
+def test_recall_delta_is_reported():
+    gates = [
+        {"gate": "labelled attacks still detected", "passed": True, "measured": 1},
+    ]
+    baseline = {
+        "gates": {"labelled attacks still detected": {"measured": 0}},
+    }
+    verdict = metrics.evaluate([], gates=gates, baseline=baseline)
+    assert verdict["recall_delta"] == 1
+    assert not verdict["passed"]
+
+
+def test_baseline_flag_rate_is_honoured():
+    results = [
+        _result(["harness", "benign"], 0,
+                '{"scanned": 100, "flagged": 6, "flag_rate": {"estimate": 0.06}}'),
+    ]
+    verdict = metrics.evaluate(results, baseline={"benign_flag_rate": 0.05})
+    assert not verdict["passed"]
