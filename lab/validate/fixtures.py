@@ -16,7 +16,11 @@ FIXTURE_DIR = Path(__file__).resolve().parents[1] / "fixtures" / "fp"
 CASES = {
     ("C024", "phantom=true"): "c024_phantom.json",
     ("NOVELTY", "misclassified=true"): "novelty_url.json",
+    ("SOURCE_BUCKET", "misclassified=true"): "source_bucket_url.json",
     ("H001", "local_skip_only"): "h001_local.json",
+    ("H064", "same_upstream=true"): "h064_same_upstream.json",
+    ("D004", "same_upstream=true"): "d004_same_upstream.json",
+    ("H101", "ref_double_count=true"): "h101_dedup.json",
 }
 
 PROBE = r'''
@@ -34,9 +38,20 @@ def diff(old, new):
     return "".join(difflib.unified_diff(
         old.splitlines(True), new.splitlines(True), "a/PKGBUILD", "b/PKGBUILD"))
 
-if rule == "NOVELTY":
+if rule in ("NOVELTY", "SOURCE_BUCKET"):
     urls = extract_urls_from_diff(diff(case["old"], case["new"])).added_urls
     value = "find" if "https://new.example" in urls else "absent"
+elif rule in ("H064", "D004"):
+    import trustsight.db as tsdb
+    tsdb.official_package_names = lambda: {"foo"}
+    from trustsight.analysis.dependencies import _dependency_findings
+    found = []
+    def add(rule_id, *args, **kwargs):
+        found.append(rule_id)
+    _dependency_findings(
+        diff(case["old"], case["new"]), case["package_name"], {}, add,
+        current_text=case["new"])
+    value = "find" if rule in found else "absent"
 elif rule == "H001":
     text = diff(case["old"], case["new"])
     changes = extract_urls_from_diff(text)
@@ -45,6 +60,13 @@ elif rule == "H001":
     value = next(
         (item["severity"] for item in findings if item["rule_id"] == "H001"),
         "absent")
+elif rule == "H101":
+    text = diff(case["old"], case["new"])
+    changes = extract_urls_from_diff(text)
+    findings = _structural_findings(
+        text, changes, package_name="demo", current_text=case["new"])
+    value = "find" if any(
+        item["rule_id"] == "H033" for item in findings) else "absent"
 elif rule == "C024":
     tree = [(name, b"") for name in case["tree_absent"]]
     changes = extract_urls_from_diff(case["diff"])

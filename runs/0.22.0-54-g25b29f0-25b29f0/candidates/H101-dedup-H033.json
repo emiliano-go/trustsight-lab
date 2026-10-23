@@ -10,10 +10,10 @@
   "rationale": "H033 and H101 describe the same ref move on one analysis. Counting both charges the diff twice for one fact.",
   "reproducers": [],
   "rule_id": "H101",
-  "status": "needs_fixture",
+  "status": "ready",
   "targets": [
     "src/trustsight/analysis/structural/_engine.py"
   ],
-  "tier0_fixture": null,
+  "tier0_fixture": "h101_dedup.json",
   "tp_twin": "an H033 with no matching H101 still fires"
 }

@@ -1,0 +1,12 @@
+{
+  "id": "h101-dedup-h033",
+  "rule_id": "H101",
+  "old": "pkgname=demo\npkgver=1.0\npkgrel=1\nsource=(\"foo::git+https://github.com/example/foo#commit=abc1234\")\nsha256sums=('SKIP')\n",
+  "new": "pkgname=demo\npkgver=1.0\npkgrel=1\nsource=(\"foo::git+https://github.com/example/foo#branch=main\")\nsha256sums=('SKIP')\n",
+  "unpatched": "find",
+  "patched": "absent",
+  "candidate": [
+    "H101",
+    "ref_double_count=true"
+  ]
+}

@@ -11,6 +11,7 @@ def test_known_templates_render_and_apply_cleanly():
     cases = (
         ("C024", "phantom=true"),
         ("NOVELTY", "misclassified=true"),
+        ("SOURCE_BUCKET", "misclassified=true"),
         ("H064", "same_upstream=true"),
         ("D004", "same_upstream=true"),
         ("H101", "ref_double_count=true"),
@@ -60,8 +61,8 @@ def test_a_candidate_without_a_tier0_fixture_is_not_ready(tmp_path):
 
     predicates = tmp_path / "predicates.json"
     predicates.write_text(json.dumps([{
-        "rule_id": "H064",
-        "predicate": "same_upstream=true",
+        "rule_id": "C001",
+        "predicate": "checksum_only=true",
         "support": 1,
         "fp": 1,
         "packages": ["demo"],

@@ -168,6 +168,14 @@ def _recipe_skip_justification(recipe_text: str) -> str:
 
 TEMPLATES.update(_EXTRA)
 
+# The same normalisation fixes the synthetic SOURCE_BUCKET entry: a `url=`
+# line was harvested as a source URL and opened a new host bucket.  Keep the
+# rule id distinct so the ledger and report can attribute the fix.
+TEMPLATES[("SOURCE_BUCKET", "misclassified=true")] = {
+    **TEMPLATES[("NOVELTY", "misclassified=true")],
+    "id": "SOURCE_BUCKET-url-metadata",
+}
+
 
 @dataclass
 class Candidate:

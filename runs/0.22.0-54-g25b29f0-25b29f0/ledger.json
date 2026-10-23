@@ -7,7 +7,7 @@
         "hardened": false,
         "state": "unproven"
       },
-      "outcome": "backlog",
+      "outcome": "pending",
       "patch_applies": true,
       "predicate": "same_upstream=true",
       "regression": {
@@ -15,9 +15,15 @@
         "open": 0
       },
       "rule_id": "D004",
-      "status": "needs_fixture",
-      "tier0_fixture": null,
-      "validation": null
+      "status": "ready",
+      "tier0_fixture": "d004_same_upstream.json",
+      "validation": {
+        "benign_flag_rate": 0.0889,
+        "benign_flagged": 746,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
     },
     {
       "coverage_targeted": true,
@@ -51,7 +57,7 @@
         "hardened": false,
         "state": "unproven"
       },
-      "outcome": "backlog",
+      "outcome": "pending",
       "patch_applies": true,
       "predicate": "same_upstream=true",
       "regression": {
@@ -59,9 +65,15 @@
         "open": 0
       },
       "rule_id": "H064",
-      "status": "needs_fixture",
-      "tier0_fixture": null,
-      "validation": null
+      "status": "ready",
+      "tier0_fixture": "h064_same_upstream.json",
+      "validation": {
+        "benign_flag_rate": 0.0889,
+        "benign_flagged": 746,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
     },
     {
       "coverage_targeted": true,
@@ -70,7 +82,7 @@
         "hardened": false,
         "state": "unproven"
       },
-      "outcome": "backlog",
+      "outcome": "pending",
       "patch_applies": true,
       "predicate": "ref_double_count=true",
       "regression": {
@@ -78,9 +90,15 @@
         "open": 0
       },
       "rule_id": "H101",
-      "status": "needs_fixture",
-      "tier0_fixture": null,
-      "validation": null
+      "status": "ready",
+      "tier0_fixture": "h101_dedup.json",
+      "validation": {
+        "benign_flag_rate": 0.0885,
+        "benign_flagged": 743,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
     },
     {
       "coverage_targeted": true,
@@ -106,17 +124,42 @@
         "passed": true,
         "tier": 1
       }
+    },
+    {
+      "coverage_targeted": true,
+      "id": "SOURCE_BUCKET-url-metadata",
+      "matrix": {
+        "hardened": false,
+        "state": ""
+      },
+      "outcome": "pending",
+      "patch_applies": true,
+      "predicate": "misclassified=true",
+      "regression": {
+        "closed": 0,
+        "open": 0
+      },
+      "rule_id": "SOURCE_BUCKET",
+      "status": "ready",
+      "tier0_fixture": "source_bucket_url.json",
+      "validation": {
+        "benign_flag_rate": 0.0865,
+        "benign_flagged": 726,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
     }
   ],
   "counts": {
-    "backlog": 3,
+    "backlog": 0,
     "landed": 0,
-    "pending": 2,
+    "pending": 6,
     "rejected": 0,
     "stale": 0,
     "superseded": 0
   },
-  "generated_at": "2026-10-23T02:56:37.814788+00:00",
+  "generated_at": "2026-10-23T03:18:25.062946+00:00",
   "pins": {
     "corpora": {
       "benign": "trustsight/tests/fixtures/benign-corpus",
@@ -129,7 +172,7 @@
     "corpus_lock_sha256": "cca7e1fa934a5066f66035b97f63a35fa6cebcca8991d66d93c95964c233f164",
     "harness_sha": "a8fada99b096a1df73cddbebc8adcf3e2aae840d",
     "harness_version": "v2.0.0-63-ga8fada9",
-    "trustsight_sha": "c4d42b1b1e12d6c642d529c2f620aec6664198c6",
-    "trustsight_version": "v0.22.0-53-gc4d42b1"
+    "trustsight_sha": "25b29f00473c5dd368299f029674fef1fc034087",
+    "trustsight_version": "v0.22.0-54-g25b29f0"
   }
 }

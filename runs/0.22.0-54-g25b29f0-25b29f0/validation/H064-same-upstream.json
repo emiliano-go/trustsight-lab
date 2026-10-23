@@ -1,5 +1,5 @@
 {
-  "candidate": "H001-local-skip",
+  "candidate": "H064-same-upstream",
   "commands": [
     {
       "argv": [
@@ -27,16 +27,16 @@
       ],
       "cwd": "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness",
       "returncode": 0,
-      "stderr": "/tmp/trustsight-lab-niyiskhl/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n/tmp/trustsight-lab-niyiskhl/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n",
-      "stdout": "743 of 8393 benign diffs flagged at threshold 20 (rate 0.0885).\n"
+      "stderr": "/tmp/trustsight-lab-i8n90im6/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n/tmp/trustsight-lab-i8n90im6/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n",
+      "stdout": "746 of 8393 benign diffs flagged at threshold 20 (rate 0.0889).\n"
     }
   ],
   "tier": 1,
-  "tree": "/tmp/trustsight-lab-niyiskhl/tree",
+  "tree": "/tmp/trustsight-lab-i8n90im6/tree",
   "verdict": {
     "benign": {
-      "estimate": 0.0885,
-      "flagged": 743,
+      "estimate": 0.0889,
+      "flagged": 746,
       "scanned": 8393,
       "threshold": 20
     },

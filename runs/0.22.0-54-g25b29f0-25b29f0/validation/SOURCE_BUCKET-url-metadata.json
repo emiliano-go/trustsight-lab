@@ -1,5 +1,5 @@
 {
-  "candidate": "NOVELTY-url-metadata",
+  "candidate": "SOURCE_BUCKET-url-metadata",
   "commands": [
     {
       "argv": [
@@ -27,12 +27,12 @@
       ],
       "cwd": "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness",
       "returncode": 0,
-      "stderr": "/tmp/trustsight-lab-x381m7kw/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n/tmp/trustsight-lab-x381m7kw/tree/src/trustsight/expansion.py:125: FutureWarning: Possible nested set at position 1\n  compiled = re.compile(\"[\" + body + \"]\")\n",
+      "stderr": "",
       "stdout": "726 of 8393 benign diffs flagged at threshold 20 (rate 0.0865).\n"
     }
   ],
   "tier": 1,
-  "tree": "/tmp/trustsight-lab-x381m7kw/tree",
+  "tree": "/tmp/trustsight-lab-nb12_sdv/tree",
   "verdict": {
     "benign": {
       "estimate": 0.0865,

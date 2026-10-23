@@ -10,6 +10,6 @@
   "corpus_lock_sha256": "cca7e1fa934a5066f66035b97f63a35fa6cebcca8991d66d93c95964c233f164",
   "harness_sha": "a8fada99b096a1df73cddbebc8adcf3e2aae840d",
   "harness_version": "v2.0.0-63-ga8fada9",
-  "trustsight_sha": "c4d42b1b1e12d6c642d529c2f620aec6664198c6",
-  "trustsight_version": "v0.22.0-53-gc4d42b1"
+  "trustsight_sha": "25b29f00473c5dd368299f029674fef1fc034087",
+  "trustsight_version": "v0.22.0-54-g25b29f0"
 }

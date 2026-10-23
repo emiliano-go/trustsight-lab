@@ -14,6 +14,10 @@ def test_every_known_predicate_has_a_fixture():
     assert fixtures.case_for("C024", "phantom=true").is_file()
     assert fixtures.case_for("NOVELTY", "misclassified=true").is_file()
     assert fixtures.case_for("H001", "local_skip_only").is_file()
+    assert fixtures.case_for("SOURCE_BUCKET", "misclassified=true").is_file()
+    assert fixtures.case_for("H064", "same_upstream=true").is_file()
+    assert fixtures.case_for("D004", "same_upstream=true").is_file()
+    assert fixtures.case_for("H101", "ref_double_count=true").is_file()
     assert fixtures.case_for("R054", "local_skip_only") is None
 
 

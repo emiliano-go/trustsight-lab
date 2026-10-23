@@ -72,5 +72,8 @@
 
 | Signature | Count | Proposed shape | Expected rules |
 |---|---|---|---|
+| `caps=shell_file|files=PKGBUILD` | 2 | write a script, then invoke it with a shell | X011 |
 | `caps=bun,shell_file|files=PKGBUILD` | 1 | execute a Bun payload and write a script, then invoke it with a shell | X011 |
-| `caps=shell_file|files=PKGBUILD` | 1 | write a script, then invoke it with a shell | X011 |
+| `caps=node|files=PKGBUILD` | 1 | execute a Node payload | X011 |
+| `caps=python,write|files=PKGBUILD` | 1 | execute a Python payload and write a file outside the package root | X011 |
+| `caps=python|files=PKGBUILD` | 1 | execute a Python payload | X011 |

@@ -1,0 +1,13 @@
+{
+  "id": "d004-same-upstream",
+  "rule_id": "D004",
+  "package_name": "demo-bin",
+  "old": "pkgname=demo-bin\npkgver=1.0\npkgrel=1\nurl=\"https://github.com/example/foo\"\nsource=(\"https://github.com/example/foo/archive/v1.0.tar.gz\")\nsha256sums=('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')\n",
+  "new": "pkgname=demo-bin\npkgver=1.0\npkgrel=1\nurl=\"https://github.com/example/foo\"\nsource=(\"https://github.com/example/foo/archive/v1.0.tar.gz\")\nsha256sums=('aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa')\nprovides=('foo')\n",
+  "unpatched": "find",
+  "patched": "absent",
+  "candidate": [
+    "D004",
+    "same_upstream=true"
+  ]
+}

@@ -95,7 +95,7 @@ def test_a_candidate_with_no_fixture_stays_in_the_backlog(tmp_path):
     _write(root, "regression/matrix.json", {"rules": []})
     _write(root, "coverage/report.json", {"rules": {"untargeted_ids": []}})
     _write(root, "regression/report.json", {"bypasses": []})
-    _candidate(root, rule_id="H064", predicate="same_upstream=true",
+    _candidate(root, rule_id="C001", predicate="checksum_only=true",
                status="needs_fixture")
 
     row = ledger.build(root, candidates=root / "candidates")["candidates"][0]

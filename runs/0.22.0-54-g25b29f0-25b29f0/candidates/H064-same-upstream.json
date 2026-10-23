@@ -13,10 +13,10 @@
   "rationale": "A repackage that provides the upstream project's own name is normal. The url= repo names that project, so it is a deterministic discriminator, not a naming guess.",
   "reproducers": [],
   "rule_id": "H064",
-  "status": "needs_fixture",
+  "status": "ready",
   "targets": [
     "src/trustsight/analysis/dependencies.py"
   ],
-  "tier0_fixture": null,
+  "tier0_fixture": "h064_same_upstream.json",
   "tp_twin": "providing a different project's name still fires H064"
 }
