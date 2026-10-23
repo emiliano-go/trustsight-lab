@@ -1,0 +1,48 @@
+{
+  "candidate": "H098-same-upstream",
+  "commands": [
+    {
+      "argv": [
+        "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness/.venv/bin/python",
+        "-m",
+        "harness",
+        "benign",
+        "--corpus",
+        "/home/eclipse/Documents/GitHub/trustsight/trustsight/tests/fixtures/benign-corpus"
+      ],
+      "cwd": "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness"
+    }
+  ],
+  "gates": null,
+  "passed": true,
+  "results": [
+    {
+      "argv": [
+        "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness/.venv/bin/python",
+        "-m",
+        "harness",
+        "benign",
+        "--corpus",
+        "/home/eclipse/Documents/GitHub/trustsight/trustsight/tests/fixtures/benign-corpus"
+      ],
+      "cwd": "/home/eclipse/Documents/GitHub/trustsight/trustsight-harness",
+      "returncode": 0,
+      "stderr": "",
+      "stdout": "746 of 8393 benign diffs flagged at threshold 20 (rate 0.0889).\n"
+    }
+  ],
+  "tier": 1,
+  "tree": "/tmp/trustsight-lab-y0ooglno/tree",
+  "verdict": {
+    "benign": {
+      "estimate": 0.0889,
+      "flagged": 746,
+      "scanned": 8393,
+      "threshold": 20
+    },
+    "failures": [],
+    "fp_verify": null,
+    "passed": true,
+    "recall_delta": null
+  }
+}

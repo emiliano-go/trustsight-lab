@@ -21,6 +21,8 @@ CASES = {
     ("H064", "same_upstream=true"): "h064_same_upstream.json",
     ("D004", "same_upstream=true"): "d004_same_upstream.json",
     ("H101", "ref_double_count=true"): "h101_dedup.json",
+    ("H003", "misclassified=true"): "h003_url.json",
+    ("H098", "same_upstream=true"): "h098_same_upstream.json",
 }
 
 PROBE = r'''
@@ -38,20 +40,28 @@ def diff(old, new):
     return "".join(difflib.unified_diff(
         old.splitlines(True), new.splitlines(True), "a/PKGBUILD", "b/PKGBUILD"))
 
-if rule in ("NOVELTY", "SOURCE_BUCKET"):
+if rule in ("NOVELTY", "SOURCE_BUCKET", "H003"):
     urls = extract_urls_from_diff(diff(case["old"], case["new"])).added_urls
-    value = "find" if "https://new.example" in urls else "absent"
-elif rule in ("H064", "D004"):
+    needle = case.get("needle", "https://new.example")
+    value = "find" if needle in urls else "absent"
+elif rule in ("H064", "D004", "H098"):
     import trustsight.db as tsdb
     tsdb.official_package_names = lambda: {"foo"}
     from trustsight.analysis.dependencies import _dependency_findings
     found = []
     def add(rule_id, *args, **kwargs):
         found.append(rule_id)
+    triggered = []
+    def collect(rule_id, *args, **kwargs):
+        triggered.append({"rule_id": rule_id})
     _dependency_findings(
-        diff(case["old"], case["new"]), case["package_name"], {}, add,
+        diff(case["old"], case["new"]), case["package_name"], {}, collect,
         current_text=case["new"])
-    value = "find" if rule in found else "absent"
+    if rule == "H098":
+        from trustsight.analysis.composition import naming_cluster_annotation
+        value = "find" if naming_cluster_annotation(triggered) else "absent"
+    else:
+        value = "find" if rule in {r["rule_id"] for r in triggered} else "absent"
 elif rule == "H001":
     text = diff(case["old"], case["new"])
     changes = extract_urls_from_diff(text)

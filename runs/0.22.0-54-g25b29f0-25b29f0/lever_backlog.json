@@ -1,0 +1,205 @@
+[
+  {
+    "fp": 17,
+    "predicate": "skip_complete=true",
+    "rule_id": "SOURCE_BUCKET",
+    "support": 17,
+    "weak_fp": 17
+  },
+  {
+    "fp": 14,
+    "predicate": "unknown_skip=0",
+    "rule_id": "SOURCE_BUCKET",
+    "support": 14,
+    "weak_fp": 14
+  },
+  {
+    "fp": 9,
+    "predicate": "same_upstream=true",
+    "rule_id": "SOURCE_BUCKET",
+    "support": 9,
+    "weak_fp": 9
+  },
+  {
+    "fp": 8,
+    "predicate": "remote_skip=0",
+    "rule_id": "H001",
+    "support": 8,
+    "weak_fp": 8
+  },
+  {
+    "fp": 8,
+    "predicate": "skip_complete=true",
+    "rule_id": "H001",
+    "support": 8,
+    "weak_fp": 8
+  },
+  {
+    "fp": 7,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H001",
+    "support": 7,
+    "weak_fp": 7
+  },
+  {
+    "fp": 7,
+    "predicate": "remote_skip=0",
+    "rule_id": "SOURCE_BUCKET",
+    "support": 7,
+    "weak_fp": 7
+  },
+  {
+    "fp": 5,
+    "predicate": "skip_complete=true",
+    "rule_id": "D004",
+    "support": 5,
+    "weak_fp": 5
+  },
+  {
+    "fp": 5,
+    "predicate": "skip_complete=true",
+    "rule_id": "H064",
+    "support": 5,
+    "weak_fp": 5
+  },
+  {
+    "fp": 5,
+    "predicate": "skip_complete=true",
+    "rule_id": "H098",
+    "support": 5,
+    "weak_fp": 5
+  },
+  {
+    "fp": 4,
+    "predicate": "remote_skip=0",
+    "rule_id": "D004",
+    "support": 4,
+    "weak_fp": 4
+  },
+  {
+    "fp": 4,
+    "predicate": "same_upstream=true",
+    "rule_id": "H001",
+    "support": 4,
+    "weak_fp": 4
+  },
+  {
+    "fp": 4,
+    "predicate": "remote_skip=0",
+    "rule_id": "H064",
+    "support": 4,
+    "weak_fp": 4
+  },
+  {
+    "fp": 4,
+    "predicate": "remote_skip=0",
+    "rule_id": "H098",
+    "support": 4,
+    "weak_fp": 4
+  },
+  {
+    "fp": 3,
+    "predicate": "unknown_skip=0",
+    "rule_id": "D004",
+    "support": 3,
+    "weak_fp": 3
+  },
+  {
+    "fp": 3,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H064",
+    "support": 3,
+    "weak_fp": 3
+  },
+  {
+    "fp": 3,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H098",
+    "support": 3,
+    "weak_fp": 3
+  },
+  {
+    "fp": 2,
+    "predicate": "skip_complete=true",
+    "rule_id": "H003",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 2,
+    "predicate": "remote_skip=0",
+    "rule_id": "H033",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 2,
+    "predicate": "skip_complete=true",
+    "rule_id": "H033",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 2,
+    "predicate": "ref_double_count=true",
+    "rule_id": "H033",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 2,
+    "predicate": "remote_skip=0",
+    "rule_id": "H101",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 2,
+    "predicate": "skip_complete=true",
+    "rule_id": "H101",
+    "support": 2,
+    "weak_fp": 2
+  },
+  {
+    "fp": 1,
+    "predicate": "remote_skip=0",
+    "rule_id": "H003",
+    "support": 1,
+    "weak_fp": 1
+  },
+  {
+    "fp": 1,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H003",
+    "support": 1,
+    "weak_fp": 1
+  },
+  {
+    "fp": 1,
+    "predicate": "same_upstream=true",
+    "rule_id": "H003",
+    "support": 1,
+    "weak_fp": 1
+  },
+  {
+    "fp": 1,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H033",
+    "support": 1,
+    "weak_fp": 1
+  },
+  {
+    "fp": 1,
+    "predicate": "unknown_skip=0",
+    "rule_id": "H101",
+    "support": 1,
+    "weak_fp": 1
+  },
+  {
+    "fp": 1,
+    "predicate": "checksum_only=true",
+    "rule_id": "SOURCE_BUCKET",
+    "support": 1,
+    "weak_fp": 1
+  }
+]

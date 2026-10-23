@@ -175,6 +175,23 @@ TEMPLATES[("SOURCE_BUCKET", "misclassified=true")] = {
     **TEMPLATES[("NOVELTY", "misclassified=true")],
     "id": "SOURCE_BUCKET-url-metadata",
 }
+TEMPLATES[("H003", "misclassified=true")] = {
+    **TEMPLATES[("NOVELTY", "misclassified=true")],
+    "id": "H003-url-metadata",
+}
+
+# H098 is a cluster over D004/H064.  When those members are same-upstream
+# repackaging, guarding the members removes the cluster; the patch is the
+# same one, and the fixture proves the cluster disappears with it.
+TEMPLATES[("H098", "same_upstream=true")] = {
+    **TEMPLATES[("H064", "same_upstream=true")],
+    "id": "H098-same-upstream",
+    "rationale": (
+        "The H098 cluster is composed of D004/H064 on a package that "
+        "provides its own upstream name; guarding those members removes the "
+        "cluster."
+    ),
+}
 
 
 @dataclass

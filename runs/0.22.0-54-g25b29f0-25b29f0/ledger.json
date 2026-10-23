@@ -52,6 +52,31 @@
     },
     {
       "coverage_targeted": false,
+      "id": "H003-url-metadata",
+      "matrix": {
+        "hardened": false,
+        "state": "unproven"
+      },
+      "outcome": "pending",
+      "patch_applies": true,
+      "predicate": "misclassified=true",
+      "regression": {
+        "closed": 0,
+        "open": 0
+      },
+      "rule_id": "H003",
+      "status": "ready",
+      "tier0_fixture": "h003_url.json",
+      "validation": {
+        "benign_flag_rate": 0.0865,
+        "benign_flagged": 726,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
+    },
+    {
+      "coverage_targeted": false,
       "id": "H064-same-upstream",
       "matrix": {
         "hardened": false,
@@ -67,6 +92,31 @@
       "rule_id": "H064",
       "status": "ready",
       "tier0_fixture": "h064_same_upstream.json",
+      "validation": {
+        "benign_flag_rate": 0.0889,
+        "benign_flagged": 746,
+        "failures": [],
+        "passed": true,
+        "tier": 1
+      }
+    },
+    {
+      "coverage_targeted": false,
+      "id": "H098-same-upstream",
+      "matrix": {
+        "hardened": false,
+        "state": "unproven"
+      },
+      "outcome": "pending",
+      "patch_applies": true,
+      "predicate": "same_upstream=true",
+      "regression": {
+        "closed": 0,
+        "open": 0
+      },
+      "rule_id": "H098",
+      "status": "ready",
+      "tier0_fixture": "h098_same_upstream.json",
       "validation": {
         "benign_flag_rate": 0.0889,
         "benign_flagged": 746,
@@ -154,12 +204,12 @@
   "counts": {
     "backlog": 0,
     "landed": 0,
-    "pending": 6,
+    "pending": 8,
     "rejected": 0,
     "stale": 0,
     "superseded": 0
   },
-  "generated_at": "2026-10-23T03:18:25.062946+00:00",
+  "generated_at": "2026-10-23T03:21:06.836514+00:00",
   "pins": {
     "corpora": {
       "benign": "trustsight/tests/fixtures/benign-corpus",

@@ -1,0 +1,22 @@
+{
+  "id": "H098-same-upstream",
+  "lever": "new_check",
+  "linked_findings": [
+    "melody-git",
+    "odinls-bin",
+    "odinls-git",
+    "openvox8-agent-bin",
+    "v4l2-relayd-ipu7-ov08x40"
+  ],
+  "patch": "--- a/src/trustsight/analysis/dependencies.py\n+++ b/src/trustsight/analysis/dependencies.py\n@@ -65,6 +65,24 @@\n     return extract_dependency_changes(\n         diff_text, package_name, current_text=current_text\n     )\n+\n+\n+def _same_upstream_name(current_text, name):\n+    # The url= repo is the project this package repackages. Providing that\n+    # project's name is normal, not a scope expansion.\n+    if not current_text:\n+        return False\n+    from ..recipedoc import parse_recipe\n+\n+    try:\n+        recipe = parse_recipe(current_text)\n+    except Exception:\n+        return False\n+    url = str(recipe.scalars.get(\"url\", \"\")).strip().strip(\"'\").strip('\"')\n+    if not url:\n+        return False\n+    tail = url.rstrip(\"/\").rsplit(\"/\", 1)[-1].removesuffix(\".git\")\n+    return tail.lower() == str(name).lower()\n \n \n def _scope_expansion_findings(diff_text, package_name, config, add,\n--- a/src/trustsight/analysis/dependencies.py\n+++ b/src/trustsight/analysis/dependencies.py\n@@ -95,6 +95,8 @@\n     for field in (\"provides\", \"replaces\", \"conflicts\"):\n         for name in sorted(added_deps.get(field, ())):\n             if is_related_package(name, package_name):\n+                continue\n+            if _same_upstream_name(current_text, name):\n                 continue\n             if is_established_package(name):\n                 add(\"H064\", \"Provides/Replaces Scope Expansion\", \"HIGH\",\n",
+  "predicate": "same_upstream=true",
+  "rationale": "The H098 cluster is composed of D004/H064 on a package that provides its own upstream name; guarding those members removes the cluster.",
+  "reproducers": [],
+  "rule_id": "H098",
+  "status": "ready",
+  "targets": [
+    "src/trustsight/analysis/dependencies.py"
+  ],
+  "tier0_fixture": "h098_same_upstream.json",
+  "tp_twin": "providing a different project's name still fires H064"
+}

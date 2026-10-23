@@ -210,12 +210,12 @@
   "ledger": {
     "backlog": 0,
     "landed": 0,
-    "pending": 6,
+    "pending": 8,
     "rejected": 0,
     "stale": 0,
     "superseded": 0
   },
-  "lever_backlog": 31,
+  "lever_backlog": 29,
   "pins": {
     "corpora": {
       "benign": "trustsight/tests/fixtures/benign-corpus",
