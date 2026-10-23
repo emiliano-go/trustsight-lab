@@ -1,8 +1,0 @@
-{
-  "fp": 17,
-  "predicate": "skip_complete=true",
-  "rule_id": "SOURCE_BUCKET",
-  "status": "needs_template",
-  "support": 17,
-  "tier0_fixture": null
-}

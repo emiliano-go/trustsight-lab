@@ -69,9 +69,7 @@
   "patch": "--- a/src/trustsight/differ/_sources.py\n+++ b/src/trustsight/differ/_sources.py\n@@ -94,6 +94,7 @@\n     return \"\"\n \n _URL_TOKEN_RE = re.compile(r\"https?://[^\\s\\'\\\"\\)]+\")\n+_URL_SCALAR_RE = re.compile(r\"\\s*url\\s*=\")\n \n def extract_urls_from_diff(diff_text: str) -> SourceChanges:\n     \"\"\"Extract added and removed URLs from a diff.\"\"\"\n--- a/src/trustsight/differ/_sources.py\n+++ b/src/trustsight/differ/_sources.py\n@@ -139,6 +139,8 @@\n         resolved = resolve_text(body, new_table if prefix == \"+\" else old_table)\n         if \"http\" not in resolved:\n             continue\n+        if _URL_SCALAR_RE.match(resolved):\n+            continue\n         # A line that only prints text (``echo``/``printf``/``cat``/``tee``)\n         # names no source; harvesting its URL fed H003, C011, the buckets and\n         # novelty a URL no fetch ever touches.  Anything else is kept: a bare\n",
   "predicate": "misclassified=true",
   "rationale": "url= is the homepage a reader follows, not a source the build fetches. Scoring it as a source URL made a homepage edit look like a novel fetch target.",
-  "reproducers": [
-    "benign/fp-2026-10-16"
-  ],
+  "reproducers": [],
   "rule_id": "NOVELTY",
   "status": "ready",
   "targets": [

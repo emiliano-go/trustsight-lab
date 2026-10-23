@@ -208,13 +208,14 @@
     "missing_reproducer": []
   },
   "ledger": {
-    "backlog": 40,
+    "backlog": 3,
     "landed": 0,
     "pending": 2,
     "rejected": 0,
     "stale": 0,
     "superseded": 0
   },
+  "lever_backlog": 32,
   "pins": {
     "corpora": {
       "benign": "trustsight/tests/fixtures/benign-corpus",
@@ -230,7 +231,7 @@
     "trustsight_sha": "c4d42b1b1e12d6c642d529c2f620aec6664198c6",
     "trustsight_version": "v0.22.0-53-gc4d42b1"
   },
-  "predicates": 43,
+  "predicates": 38,
   "predicates_strict": 43,
   "schema_version": 1,
   "watcher": {

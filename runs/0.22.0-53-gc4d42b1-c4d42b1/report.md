@@ -4,11 +4,7 @@
 
 | Rule | Predicate | Support | FP | Hard | Weak | TP-but-benign |
 |---|---|---|---|---|---|---|
-| NOVELTY | `skip_complete=true` | 36259 | 131 | 0 | 131 | 36128 |
 | NOVELTY | `misclassified=true` | 131 | 131 | 0 | 131 | 0 |
-| NOVELTY | `unknown_skip=0` | 29059 | 83 | 0 | 83 | 28976 |
-| NOVELTY | `remote_skip=0` | 33293 | 65 | 0 | 65 | 33228 |
-| NOVELTY | `same_upstream=true` | 6299 | 59 | 0 | 59 | 6240 |
 | SOURCE_BUCKET | `misclassified=true` | 17 | 17 | 0 | 17 | 0 |
 | SOURCE_BUCKET | `skip_complete=true` | 17 | 17 | 0 | 17 | 0 |
 | SOURCE_BUCKET | `unknown_skip=0` | 14 | 14 | 0 | 14 | 0 |
@@ -32,7 +28,6 @@
 | D004 | `unknown_skip=0` | 3 | 3 | 0 | 3 | 0 |
 | H064 | `unknown_skip=0` | 3 | 3 | 0 | 3 | 0 |
 | H098 | `unknown_skip=0` | 3 | 3 | 0 | 3 | 0 |
-| NOVELTY | `local_skip>0` | 560 | 2 | 0 | 2 | 558 |
 | H003 | `misclassified=true` | 2 | 2 | 0 | 2 | 0 |
 | H003 | `skip_complete=true` | 2 | 2 | 0 | 2 | 0 |
 | H033 | `remote_skip=0` | 2 | 2 | 0 | 2 | 0 |

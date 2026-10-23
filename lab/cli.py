@@ -75,6 +75,7 @@ def cmd_mine(args) -> int:
         rows,
         min_support=args.min_support,
         min_packages=args.min_packages,
+        min_precision=args.min_precision,
     )
     out = Path(args.out) if args.out else REPORTS / "predicates.json"
     _write_json(out, candidates)
@@ -162,19 +163,24 @@ def cmd_candidates(args) -> int:
     out_dir = Path(args.out) if args.out else REPORTS / "candidates"
     out_dir.mkdir(parents=True, exist_ok=True)
     written = []
+    seen = set()
+    backlog = []
     for item in predicates:
         candidate = known.for_predicate(
             item["rule_id"], item["predicate"], root / "trustsight"
         )
         if candidate is None:
-            doc = {
+            # No lever exists for this predicate.  Writing one file per
+            # unsupported permutation buried the five real candidates under
+            # forty dead-ends; keep them in one auditable backlog instead.
+            backlog.append({
                 "rule_id": item["rule_id"],
                 "predicate": item["predicate"],
-                "status": "needs_template",
-                "tier0_fixture": None,
                 "support": item["support"],
                 "fp": item["fp"],
-            }
+                "weak_fp": item.get("weak_fp", 0),
+            })
+            continue
         else:
             # A candidate is only "ready" when it can be checked before any
             # corpus scan: an FP case and its true-positive twin.  A patch
@@ -186,10 +192,18 @@ def cmd_candidates(args) -> int:
                 "tier0_fixture": case.name if case else None,
             }
             doc["linked_findings"] = item.get("packages", [])
-        path = out_dir / f"{doc.get('id', item['rule_id'] + '-' + item['predicate'].replace('=', '-'))}.json"
+        key = doc.get("id") or f"{item['rule_id']}-{item['predicate']}"
+        if key in seen:
+            continue
+        seen.add(key)
+        path = out_dir / f"{key}.json"
         _write_json(path, doc)
         written.append(str(path))
-    print(json.dumps({"candidates": written}, indent=2))
+    _write_json(out_dir.parent / "lever_backlog.json", backlog)
+    print(json.dumps({
+        "candidates": written,
+        "lever_backlog": len(backlog),
+    }, indent=2))
     return 0
 
 
@@ -206,7 +220,6 @@ def cmd_refresh(args) -> int:
         )
         rows += benign.flatten(raw)
         _write_json(DATA / "benign_fire_rates.json", benign.fire_rates(raw))
-    reports.write_jsonl(rows, DATA / "labels.jsonl")
     if args.extract:
         watcher.extract(
             Path(args.db),
@@ -232,6 +245,7 @@ def cmd_refresh(args) -> int:
         args.findings = str(DATA / "contradictions.jsonl")
     if weak_path:
         rows = build.merge_findings(rows, weak_path)
+    reports.write_jsonl(rows, DATA / "labels.jsonl")
     # Deterministic contradictions are the precision signal when the watcher
     # has no adjudicated hard FPs yet; mining hard_fp alone silently discarded
     # every real finding.
@@ -239,6 +253,7 @@ def cmd_refresh(args) -> int:
         rows,
         min_support=1,
         min_packages=1,
+        min_precision=args.min_precision,
         positives=("hard_fp", "weak_fp"),
     )
     _write_json(REPORTS / "predicates.json", predicates)
@@ -246,6 +261,7 @@ def cmd_refresh(args) -> int:
         rows,
         min_support=args.min_support,
         min_packages=args.min_packages,
+        min_precision=args.min_precision,
     )
     _write_json(REPORTS / "predicates_strict.json", strict)
     _write_json(REPORTS / "rank.json", fp_ranker.rank_groups(rows))
@@ -550,6 +566,7 @@ def build_parser() -> argparse.ArgumentParser:
     mine.add_argument("--out")
     mine.add_argument("--min-support", type=int, default=1)
     mine.add_argument("--min-packages", type=int, default=1)
+    mine.add_argument("--min-precision", type=float, default=0.5)
     mine.add_argument("--contradictions", help="weak labels from the watcher sample")
     mine.set_defaults(func=cmd_mine)
 
@@ -594,6 +611,7 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--contradictions", default=str(DATA / "contradictions_sample.jsonl"))
     refresh.add_argument("--min-support", type=int, default=20)
     refresh.add_argument("--min-packages", type=int, default=3)
+    refresh.add_argument("--min-precision", type=float, default=0.5)
     refresh.add_argument("--benign-sample", type=int, default=0)
     refresh.add_argument("--min-weight", type=int, default=0)
     refresh.add_argument("--all-rules", action="store_true")

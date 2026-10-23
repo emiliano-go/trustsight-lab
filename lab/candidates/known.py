@@ -54,7 +54,7 @@ TEMPLATES: dict[tuple[str, str], dict] = {
             )
         ],
         "tp_twin": "an added .install that is present in the tree and not declared still fires",
-        "reproducers": ["benign/fp-2026-10-16"],
+        "reproducers": [],
     },
     ("H001", "local_skip_only"): {
         "id": "H001-local-skip",
@@ -161,7 +161,7 @@ def _recipe_skip_justification(recipe_text: str) -> str:
             ),
         ],
         "tp_twin": "a URL added to source=() is still a novel source",
-        "reproducers": ["benign/fp-2026-10-16"],
+        "reproducers": [],
     },
 }
 

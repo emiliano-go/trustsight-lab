@@ -56,9 +56,15 @@ def mine(
     rows: list[dict],
     min_support: int = 1,
     min_packages: int = 1,
+    min_precision: float = 0.5,
     positives: tuple[str, ...] = ("hard_fp", "weak_fp"),
 ) -> list[dict]:
-    """Rank predicates by FP count, with support and TP-but-benign retention."""
+    """Rank predicates by FP count, keeping only those that separate.
+
+    A predicate that hits 131 FPs and 36,000 real findings is not a guard; it
+    is a census.  Precision is the fraction of hits that are the target label,
+    so the default drops any predicate whose hits are mostly real signals.
+    """
 
     candidates = []
     for rule, grouped in sorted(_prepare(rows, positives).items()):
@@ -76,7 +82,9 @@ def mine(
             packages = sorted({
                 row.get("package", "") for row in hits if row.get("package")
             })
-            if not fp or len(packages) < min_packages:
+            precision = fp / len(hits) if hits else 0.0
+            if (not fp or len(packages) < min_packages
+                    or precision < min_precision):
                 continue
             candidates.append(
                 {
@@ -88,7 +96,7 @@ def mine(
                     "weak_fp": weak,
                     "tp_benign": benign,
                     "fp_lift": round(fp / base_fp, 3),
-                    "precision": round(fp / len(hits), 3),
+                    "precision": round(precision, 3),
                     "signatures": sorted({row["sig"] for row in hits}),
                     "packages": packages,
                 }
