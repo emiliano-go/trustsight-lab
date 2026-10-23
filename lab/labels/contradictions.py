@@ -116,12 +116,33 @@ def derive(
 
 
 def annotate(rows: list[dict]) -> list[dict]:
-    """Add ``contradiction`` to rows that do not already carry a hard label."""
+    """Add ``contradiction`` or a real-signal label to each row.
+
+    A maintainer-first-seen on an existing package is the first signal for an
+    adoption campaign, not a false positive.  It is labelled ``tp_benign`` so
+    the miner keeps it out of the precision target and the rule keeps firing.
+    """
 
     out = []
     for row in rows:
         if row.get("label") in ("hard_fp", "tp_benign", "tp"):
             out.append(row)
+            continue
+        context = row.get("novelty_context") or {}
+        if (
+            row.get("rule_id") == "NOVELTY"
+            and row.get("first_seen") is False
+            and context.get("maintainer_first_seen_for_this_package") is True
+            and not context.get("url_first_seen_globally")
+            and not context.get("url_first_seen_in_this_package")
+        ):
+            out.append({
+                **row,
+                "signal": {
+                    "label": "tp_benign",
+                    "reason": "maintainer_adoption",
+                },
+            })
             continue
         found = derive(
             row.get("checks"),

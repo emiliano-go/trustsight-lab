@@ -48,9 +48,15 @@ def test_labels_keep_benign_findings_out_of_the_fp_class():
 )
 def test_corpus_manifest_matches_the_locked_corpus():
     doc = corpora.manifest(ROOT / "trustsight", ROOT / "trustsight-harness")
-    assert doc["counts"]["benign"] == 3739
+    lock = json.loads(
+        (ROOT / "trustsight" / "tests" / "fixtures" / "corpus.lock").read_text()
+    )
+    exported = len(list(
+        (ROOT / "trustsight-harness" / "fixtures-out").rglob("*.expected.json")
+    ))
+    assert doc["counts"]["benign"] == lock["total_entries"]
     assert doc["counts"]["malicious"] == 207
-    assert doc["counts"]["bypass"] == 9851
+    assert doc["counts"]["bypass"] == exported
     assert doc["counts"]["ioc_baselines"] == 3
 
 

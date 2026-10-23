@@ -87,12 +87,21 @@ def snapshot_remote(
     )
     subprocess.run(["ssh", host, "docker", "exec", container, "python", "-c", shlex.quote(script)],
                    check=True)
+    # A 4.7 GB SQLite file over a consumer uplink is a coffee break; gzip on
+    # the container side and decompress here.  The integrity check below is
+    # still against the uncompressed size.
     with dest.open("wb") as handle:
-        subprocess.run(
-            ["ssh", host, "docker", "exec", container, "cat", remote_tmp],
-            check=True,
-            stdout=handle,
+        source = subprocess.Popen(
+            _remote_gzip_argv(host, container, remote_tmp),
+            stdout=subprocess.PIPE,
         )
+        assert source.stdout is not None
+        unpack = subprocess.run(
+            ["gunzip", "-c"], stdin=source.stdout, stdout=handle, check=False
+        )
+        source.stdout.close()
+        if source.wait() != 0 or unpack.returncode != 0:
+            raise RuntimeError("compressed snapshot transfer failed")
     remote_size = subprocess.check_output(
         ["ssh", host, "docker", "exec", container, "stat", "-c", "%s", remote_tmp],
         text=True,
@@ -104,6 +113,18 @@ def snapshot_remote(
     subprocess.run(["ssh", host, "docker", "exec", container, "rm", "-f", remote_tmp],
                    check=True)
     return dest
+
+
+def _remote_gzip_argv(host: str, container: str, remote_tmp: str) -> list[str]:
+    """One ssh argv whose remote command keeps its own quoting.
+
+    Passing `sh -c gzip ...` as separate argv words loses the quoting at the
+    remote shell; the command must travel as a single quoted string.
+    """
+
+    inner = f"gzip -1 -c {shlex.quote(remote_tmp)}"
+    remote = f"docker exec {shlex.quote(container)} sh -c {shlex.quote(inner)}"
+    return ["ssh", host, remote]
 
 
 def _sha256(path: Path) -> str:
@@ -161,8 +182,16 @@ def extract(
     batch: int = 2000,
     limit: int | None = None,
     with_diffs: bool = False,
+    min_weight: int | None = None,
 ) -> dict:
-    """Stream selected tables to ``<table>.jsonl.gz`` plus a manifest."""
+    """Stream selected tables to ``<table>.jsonl.gz`` plus a manifest.
+
+    ``min_weight`` keeps only analyses with a score-bearing finding.  The
+    watcher writes 867k rows but only ~47k carry weight; extracting the rest
+    makes a full-history run needlessly slow without adding a precision
+    signal.  It applies to ``analysis_history`` only; packages and snapshots
+    are small and are needed to recompute evidence.
+    """
 
     out_dir.mkdir(parents=True, exist_ok=True)
     conn = sqlite3.connect(f"file:{db}?mode=ro", uri=True)
@@ -182,16 +211,28 @@ def extract(
                 last = 0
                 while True:
                     if table == "analysis_history":
+                        where = "id > ?"
+                        params: list = [last]
+                        if min_weight is not None:
+                            where += (
+                                " AND EXISTS (SELECT 1 FROM "
+                                "json_each(fact_json, '$.score_breakdown') AS b "
+                                "WHERE CAST(json_extract(b.value, '$.weight') "
+                                "AS INTEGER) > ?)"
+                            )
+                            params.append(min_weight)
                         query = (
-                            'SELECT * FROM "analysis_history" WHERE id > ? '
+                            f'SELECT * FROM "analysis_history" WHERE {where} '
                             "ORDER BY id LIMIT ?"
                         )
+                        params.append(batch)
                     else:
                         query = (
                             f'SELECT rowid AS _rowid, * FROM "{table}" '
                             "WHERE rowid > ? ORDER BY rowid LIMIT ?"
                         )
-                    page = conn.execute(query, (last, batch)).fetchall()
+                        params = [last, batch]
+                    page = conn.execute(query, params).fetchall()
                     if not page:
                         break
                     for row in page:
@@ -223,6 +264,7 @@ def extract(
         "tables": outputs,
         "quick_check": integrity,
         "with_diffs": with_diffs,
+        "min_weight": min_weight,
     }
     (out_dir / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n"

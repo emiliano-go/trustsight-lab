@@ -1,0 +1,8 @@
+{
+  "fp": 2,
+  "predicate": "remote_skip=0",
+  "rule_id": "H033",
+  "status": "needs_template",
+  "support": 2,
+  "tier0_fixture": null
+}

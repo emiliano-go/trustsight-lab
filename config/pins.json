@@ -7,9 +7,9 @@
     "ioc_baselines": "trustsight/ioc-baselines",
     "malicious": "trustsight/tests/fixtures/malicious"
   },
-  "corpus_lock_sha256": "1f163fa4cede790d3da66c4f94d50a032bd1fc79e12bb4885bade816bb421040",
-  "harness_sha": "034e6a824691ed24348307ce090de330716be0aa",
-  "harness_version": "v2.0.0-62-g034e6a8",
-  "trustsight_sha": "fbe90d92ccc1a64b532f0f1b119a80021af393d0",
-  "trustsight_version": "v0.22.0-42-gfbe90d9"
+  "corpus_lock_sha256": "cca7e1fa934a5066f66035b97f63a35fa6cebcca8991d66d93c95964c233f164",
+  "harness_sha": "a8fada99b096a1df73cddbebc8adcf3e2aae840d",
+  "harness_version": "v2.0.0-63-ga8fada9",
+  "trustsight_sha": "c4d42b1b1e12d6c642d529c2f620aec6664198c6",
+  "trustsight_version": "v0.22.0-53-gc4d42b1"
 }

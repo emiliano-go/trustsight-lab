@@ -1,0 +1,23 @@
+{
+  "id": "H001-local-skip",
+  "lever": "evidence_guard",
+  "linked_findings": [
+    "chaptarrng-bin",
+    "ele-messenger",
+    "gcc17",
+    "libadwaita-without-adwaita",
+    "moss",
+    "moss-language"
+  ],
+  "patch": "--- a/src/trustsight/differ/_sources.py\n+++ b/src/trustsight/differ/_sources.py\n@@ -36,6 +36,38 @@\n     r\"git\\+https?://|git\\+ssh://|git://|svn\\+https?://|svn://|hg://|bzr://\",\n     re.IGNORECASE,\n )\n+\n+\n+_SUM_ARRAY_RE = re.compile(\n+    r\"(?:md5|sha1|sha224|sha256|sha384|sha512|b2)sums(_.*)?$\"\n+)\n+_URL_ENTRY_RE = re.compile(\n+    r\"^[A-Za-z][A-Za-z0-9+.-]*://|^[A-Za-z][A-Za-z0-9+.-]*::\"\n+)\n+\n+\n+def _all_skips_are_local(recipe) -> bool:\n+    # Every SKIP must cover a file committed beside the recipe.\n+    seen = False\n+    for name, sums in recipe.arrays.items():\n+        match = _SUM_ARRAY_RE.match(name)\n+        if not match:\n+            continue\n+        sources = recipe.arrays.get(\"source\" + (match.group(1) or \"\"), ())\n+        for index, checksum in enumerate(sums):\n+            if str(checksum).strip().strip(\"'\").strip('\"') != \"SKIP\":\n+                continue\n+            seen = True\n+            source = sources[index] if index < len(sources) else None\n+            if source is None:\n+                return False\n+            target = str(source).strip().split(\"::\", 1)[-1]\n+            target = target.strip().strip(\"'\").strip('\"')\n+            if _URL_ENTRY_RE.match(target) or target.startswith(\"/\"):\n+                return False\n+            if \"..\" in target.split(\"/\") or \"$\" in target:\n+                return False\n+    return seen\n \n \n def _recipe_skip_justification(recipe_text: str) -> str:\n--- a/src/trustsight/differ/_sources.py\n+++ b/src/trustsight/differ/_sources.py\n@@ -62,6 +62,8 @@\n     keys = list(recipe.arrays) + list(recipe.scalars)\n     if any(str(k).upper().startswith(\"DKMS\") for k in keys):\n         return \"vcs source\"\n+    if _all_skips_are_local(recipe):\n+        return \"local file\"\n     return \"\"\n \n \n",
+  "predicate": "local_skip_only",
+  "rationale": "A local source is a file committed beside the recipe; the AUR git tree is its integrity record, so a SKIP over it has nothing to verify upstream. Only remote and dynamic sources need a hash.",
+  "reproducers": [],
+  "rule_id": "H001",
+  "status": "ready",
+  "targets": [
+    "src/trustsight/differ/_sources.py"
+  ],
+  "tier0_fixture": "h001_local.json",
+  "tp_twin": "a remote source set to SKIP with no signature still fires H001"
+}

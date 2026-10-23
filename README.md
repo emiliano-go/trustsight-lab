@@ -68,8 +68,13 @@ The watcher database is read-only. A bounded sample can be extracted from a
 container, and a full snapshot can be pulled and resumed:
 
 ```bash
-uv run python -m lab.cli snapshot --host contabo --container trustsight-watch
-uv run python -m lab.cli extract --db data/watcher.db --out data/watcher
+uv run python -m lab.cli snapshot --host vps --container trustsight-watch
+uv run python -m lab.cli extract --db data/watcher.db --out data/watcher \
+  --with-diffs --min-weight 1
+uv run python -m lab.cli findings --extract data/watcher --out data/findings.jsonl \
+  --all-rules --min-weight 1
+uv run python -m lab.cli contradictions --findings data/findings.jsonl \
+  --out data/contradictions.jsonl
 ```
 
 ## Candidate templates
@@ -112,6 +117,15 @@ The FP reports are point in time. Only two of sixteen carry a corpus diff for
 `fp_verify`, and some describe behavior already fixed in the pinned build.
 Tree-dependent guards cannot be validated through the stateless diff path and
 need a full review replay.
+
+The watcher path has its own limits. Its snapshots keep the latest PKGBUILD
+and a per-package `install_text`, but no complete file listing, so a
+phantom-install check (C024/R007) cannot be recomputed from the watcher;
+those shapes stay with the harness's FP corpus. A deterministic contradiction
+is only trusted when the finding is within six hours of the latest snapshot,
+because older findings would be compared against a recipe that has since
+moved. Score-bearing extraction (`--min-weight 1`) keeps the run to the
+findings that can move a score; INFO annotations are excluded.
 
 ## Tests
 

@@ -1,0 +1,19 @@
+{
+  "id": "H101-dedup-H033",
+  "lever": "dedup",
+  "linked_findings": [
+    "clamav-gui",
+    "sysc-walls"
+  ],
+  "patch": "--- a/src/trustsight/analysis/structural/_engine.py\n+++ b/src/trustsight/analysis/structural/_engine.py\n@@ -61,6 +61,27 @@\n     r\"^\\+.*(?:md5|sha1|sha224|sha256|sha384|sha512|b2)sums?_[A-Za-z0-9_]+\",\n     re.IGNORECASE | re.MULTILINE,\n )\n+\n+def _dedup_moved_refs(findings):\n+    # H101 owns a lost pin; H033 restates the same ref move. Drop H033 when\n+    # its repo is named by an H101 finding on this analysis.\n+    owners = [\n+        finding for finding in findings if finding.get(\"rule_id\") == \"H101\"\n+    ]\n+    if not owners:\n+        return\n+    for index in range(len(findings) - 1, -1, -1):\n+        finding = findings[index]\n+        if finding.get(\"rule_id\") != \"H033\":\n+            continue\n+        params = finding.get(\"params\") or {}\n+        repo = str(params.get(\"repo\", \"\"))\n+        if repo and any(\n+            repo in str((owner.get(\"params\") or {}).get(key, \"\"))\n+            for owner in owners for key in (\"old_url\", \"new_url\")\n+        ):\n+            del findings[index]\n+\n \n def _structural_findings(\n     diff_text: str,\n--- a/src/trustsight/analysis/structural/_engine.py\n+++ b/src/trustsight/analysis/structural/_engine.py\n@@ -627,5 +627,6 @@\n     # predates this diff is still a fact about the package being reviewed.\n     _ioc_findings(diff_text, package_name, config or {}, add,\n                   current_text=current_text)\n+    _dedup_moved_refs(findings)\n \n     return findings\n",
+  "predicate": "ref_double_count=true",
+  "rationale": "H033 and H101 describe the same ref move on one analysis. Counting both charges the diff twice for one fact.",
+  "reproducers": [],
+  "rule_id": "H101",
+  "status": "needs_fixture",
+  "targets": [
+    "src/trustsight/analysis/structural/_engine.py"
+  ],
+  "tier0_fixture": null,
+  "tp_twin": "an H033 with no matching H101 still fires"
+}

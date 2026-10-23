@@ -1,0 +1,252 @@
+{
+  "fingerprints": [
+    {
+      "config_fingerprint": "sha256:966f24237ab847f9b5a92a524660db1afbc33635fc25ffebdcbf34566d460b90",
+      "contradictions": {},
+      "findings": 37132,
+      "packages": 35788,
+      "top_rules": {
+        "C001": 59,
+        "C011": 40,
+        "D001": 300,
+        "H030": 46,
+        "H093": 18,
+        "NOVELTY": 36282,
+        "R010": 17,
+        "R054": 88,
+        "SOURCE_BUCKET": 128,
+        "X024": 21
+      },
+      "top_versions": {
+        "${_pkgver//-/.}": 704,
+        "0.1.0": 480,
+        "0.2.0": 343,
+        "1.0.0": 543,
+        "20261001": 707
+      }
+    },
+    {
+      "config_fingerprint": "sha256:4d29026f6b3d70bdb7c16f6ab53ffe28d01977497ced3fe95923bb4bf37ca9ff",
+      "contradictions": {},
+      "findings": 2901,
+      "packages": 1049,
+      "top_rules": {
+        "C001": 94,
+        "C004": 54,
+        "D001": 254,
+        "H030": 61,
+        "H049": 82,
+        "H051": 97,
+        "H054": 82,
+        "NOVELTY": 1091,
+        "SOURCE_BUCKET": 274,
+        "X026": 101
+      },
+      "top_versions": {
+        "$_version+$_channel+${_date//-}": 35,
+        "0.17.0": 33,
+        "0.21.6": 32,
+        "10.1.0": 54,
+        "2.155.0": 42
+      }
+    },
+    {
+      "config_fingerprint": "sha256:88c95c4ce28df314f2700adec43f36ea031d07f5e4d9726d6bdc30947520eb4a",
+      "contradictions": {
+        "url_in_source_misclassified": 25
+      },
+      "findings": 2852,
+      "packages": 1299,
+      "top_rules": {
+        "C001": 47,
+        "C024": 132,
+        "D001": 140,
+        "H001": 750,
+        "H049": 45,
+        "H051": 402,
+        "H054": 46,
+        "NOVELTY": 514,
+        "R007": 194,
+        "SOURCE_BUCKET": 151
+      },
+      "top_versions": {
+        "0.1.0": 30,
+        "1.0.0_beta.25": 50,
+        "2.155.0": 60,
+        "20261014": 1122,
+        "26.10.00": 34
+      }
+    },
+    {
+      "config_fingerprint": "sha256:6f567b2aa2a21df8cae6e9e2459fd4b34353b8fe849038dec3e9ea46ead0645d",
+      "contradictions": {
+        "local_skip_only": 3,
+        "ref_double_count": 2,
+        "same_upstream": 12,
+        "url_in_source_misclassified": 31
+      },
+      "findings": 2450,
+      "packages": 698,
+      "top_rules": {
+        "C001": 84,
+        "C017": 60,
+        "C024": 235,
+        "H017": 66,
+        "H054": 48,
+        "NOVELTY": 488,
+        "R007": 620,
+        "R059": 39,
+        "SOURCE_BUCKET": 161,
+        "X015": 54
+      },
+      "top_versions": {
+        "${_pkgver}": 40,
+        "0.1.0": 37,
+        "1.0.0_beta.26": 41,
+        "1.19.6": 32,
+        "2.155.0": 75
+      }
+    },
+    {
+      "config_fingerprint": "sha256:bc8f844e8b024b2a2528e5fef040c4beffba08872ed26f884cb97c835fed9084",
+      "contradictions": {
+        "local_skip_only": 1,
+        "ref_double_count": 2,
+        "url_in_source_misclassified": 65
+      },
+      "findings": 1282,
+      "packages": 534,
+      "top_rules": {
+        "C011": 21,
+        "D001": 29,
+        "H017": 22,
+        "H025": 30,
+        "H049": 68,
+        "H051": 27,
+        "H054": 27,
+        "NOVELTY": 480,
+        "R007": 208,
+        "SOURCE_BUCKET": 129
+      },
+      "top_versions": {
+        "${_major}.${_minor}": 18,
+        "0.1.1": 15,
+        "2.155.0": 87,
+        "2.59.0": 31,
+        "2026.10.17.1348": 15
+      }
+    },
+    {
+      "config_fingerprint": "sha256:a3ed5181d007dfa34abdfae47634a78975e37568a3d124f180fcf93ca1042303",
+      "contradictions": {
+        "local_skip_only": 4,
+        "same_upstream": 3,
+        "url_in_source_misclassified": 29
+      },
+      "findings": 1114,
+      "packages": 456,
+      "top_rules": {
+        "C001": 28,
+        "H049": 41,
+        "H051": 29,
+        "H054": 37,
+        "NOVELTY": 388,
+        "R007": 157,
+        "R010": 28,
+        "SOURCE_BUCKET": 99,
+        "X011": 22,
+        "X026": 32
+      },
+      "top_versions": {
+        "0.3.1": 12,
+        "0.7.2": 27,
+        "0.8.13": 14,
+        "1.141.0": 17,
+        "2.155.0": 84
+      }
+    },
+    {
+      "config_fingerprint": "sha256:fcf882ba8052a5a9a8624cbe9fa4c08af3a7dfe484ed86032b316786864c922a",
+      "contradictions": {},
+      "findings": 269,
+      "packages": 105,
+      "top_rules": {
+        "C001": 13,
+        "C004": 9,
+        "C024": 20,
+        "C025": 6,
+        "H017": 7,
+        "NOVELTY": 68,
+        "R007": 69,
+        "SOURCE_BUCKET": 19,
+        "X015": 8,
+        "X026": 6
+      },
+      "top_versions": {
+        "$_tag": 12,
+        "1.123": 12,
+        "2.155.0": 15,
+        "5.0.3": 23,
+        "6.1.1": 14
+      }
+    }
+  ],
+  "gaps": 2,
+  "generated_at": "2026-10-23T02:52:41.933367+00:00",
+  "labels": {
+    "benign": 0,
+    "bypass": 2,
+    "candidate_benign": 0,
+    "hard_fp": 0,
+    "tp": 207,
+    "tp_benign": 36134,
+    "weak_fp": 177
+  },
+  "labels_audit": {
+    "hard_fp": 0,
+    "missing_fingerprint": [],
+    "missing_reproducer": []
+  },
+  "ledger": {
+    "backlog": 40,
+    "landed": 0,
+    "pending": 2,
+    "rejected": 0,
+    "stale": 0,
+    "superseded": 0
+  },
+  "pins": {
+    "corpora": {
+      "benign": "trustsight/tests/fixtures/benign-corpus",
+      "bypass_fixtures": "trustsight-harness/fixtures-out",
+      "campaigns": "trustsight-harness/campaigns",
+      "fp_reports": "trustsight-harness/benign",
+      "ioc_baselines": "trustsight/ioc-baselines",
+      "malicious": "trustsight/tests/fixtures/malicious"
+    },
+    "corpus_lock_sha256": "cca7e1fa934a5066f66035b97f63a35fa6cebcca8991d66d93c95964c233f164",
+    "harness_sha": "a8fada99b096a1df73cddbebc8adcf3e2aae840d",
+    "harness_version": "v2.0.0-63-ga8fada9",
+    "trustsight_sha": "c4d42b1b1e12d6c642d529c2f620aec6664198c6",
+    "trustsight_version": "v0.22.0-53-gc4d42b1"
+  },
+  "predicates": 43,
+  "predicates_strict": 43,
+  "schema_version": 1,
+  "watcher": {
+    "by_reason": {
+      "D004:same_upstream": 5,
+      "H001:local_skip_only": 8,
+      "H003:url_in_source_misclassified": 2,
+      "H033:ref_double_count": 2,
+      "H064:same_upstream": 5,
+      "H098:same_upstream": 5,
+      "H101:ref_double_count": 2,
+      "NOVELTY:url_in_source_misclassified": 131,
+      "SOURCE_BUCKET:url_in_source_misclassified": 17
+    },
+    "contradictions": 177,
+    "findings": 48000,
+    "signals": 36134
+  }
+}

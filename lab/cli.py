@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import json
 import tempfile
+from collections import Counter
 from pathlib import Path
 
 from .candidates import known
@@ -127,7 +128,8 @@ def cmd_findings(args) -> int:
     rows = findings.build(
         Path(args.extract),
         limit=args.limit,
-        only_rules=tuple(args.rules or findings.INTERESTING),
+        only_rules=() if args.all_rules else tuple(args.rules or findings.INTERESTING),
+        min_weight=args.min_weight,
         recompute=not args.no_evidence,
         root=_root(args.root),
     )
@@ -210,26 +212,34 @@ def cmd_refresh(args) -> int:
             Path(args.db),
             Path(args.watcher_out),
             limit=args.limit,
-            with_diffs=False,
+            with_diffs=args.with_diffs,
+            min_weight=args.min_weight,
         )
     weak_path = args.contradictions
+    watcher_findings: list[dict] = []
     if args.build_findings:
         built = findings.build(
             Path(args.watcher_out),
             limit=args.limit,
+            only_rules=() if args.all_rules else findings.INTERESTING,
+            min_weight=args.min_weight,
             root=root,
         )
         annotations = contradictions.annotate(built)
+        watcher_findings = annotations
         findings.write(annotations, DATA / "contradictions.jsonl")
         weak_path = str(DATA / "contradictions.jsonl")
         args.findings = str(DATA / "contradictions.jsonl")
     if weak_path:
-        rows = build.merge_weak(rows, weak_path)
+        rows = build.merge_findings(rows, weak_path)
+    # Deterministic contradictions are the precision signal when the watcher
+    # has no adjudicated hard FPs yet; mining hard_fp alone silently discarded
+    # every real finding.
     predicates = predicate_miner.mine(
         rows,
         min_support=1,
         min_packages=1,
-        positives=("hard_fp",),
+        positives=("hard_fp", "weak_fp"),
     )
     _write_json(REPORTS / "predicates.json", predicates)
     strict = predicate_miner.mine(
@@ -258,6 +268,17 @@ def cmd_refresh(args) -> int:
         "pins": pins.to_dict(),
         "labels": build.counts(rows),
         "labels_audit": build.audit(rows),
+        "watcher": {
+            "findings": len(watcher_findings),
+            "contradictions": sum(
+                1 for row in watcher_findings if row.get("contradiction")
+            ),
+            "by_reason": dict(sorted(Counter(
+                f"{row.get('rule_id')}:{row['contradiction'].get('reason')}"
+                for row in watcher_findings if row.get("contradiction")
+            ).items())),
+            "signals": sum(1 for row in watcher_findings if row.get("signal")),
+        },
         "predicates": len(predicates),
         "predicates_strict": len(strict),
         "gaps": len(gaps),
@@ -311,11 +332,15 @@ def _render_report(predicates, rank, gaps) -> str:
     lines = ["# TrustSight Lab report", ""]
     lines += ["## Precision candidates", ""]
     if predicates:
-        lines += ["| Rule | Predicate | Support | FP | TP-but-benign |", "|---|---|---|---|---|"]
+        lines += [
+            "| Rule | Predicate | Support | FP | Hard | Weak | TP-but-benign |",
+            "|---|---|---|---|---|---|---|",
+        ]
         for row in predicates:
             lines.append(
                 f"| {row['rule_id']} | `{row['predicate']}` | {row['support']} | "
-                f"{row['fp']} | {row['tp_benign']} |"
+                f"{row['fp']} | {row.get('hard_fp', 0)} | "
+                f"{row.get('weak_fp', 0)} | {row['tp_benign']} |"
             )
     else:
         lines.append("No predicates mined.")
@@ -376,10 +401,29 @@ def cmd_status(args) -> int:
 
 
 def cmd_ledger(args) -> int:
-    from . import ledger
+    import shutil
 
-    doc = ledger.build(_root(args.root), candidates=Path(args.candidates))
+    from . import ledger, scoreboard
+
+    root = _root(args.root)
+    doc = ledger.build(
+        root,
+        candidates=Path(args.candidates),
+        validation=Path(args.validation),
+    )
     out = Path(args.out) if args.out else REPORTS / ledger.LEDGER
+    if args.publish:
+        run = Path(args.runs) / scoreboard.pin_slug(read_pins(root))
+        run.mkdir(parents=True, exist_ok=True)
+        if Path(args.candidates).is_dir():
+            shutil.copytree(
+                Path(args.candidates), run / "candidates", dirs_exist_ok=True
+            )
+        if Path(args.validation).is_dir():
+            shutil.copytree(
+                Path(args.validation), run / "validation", dirs_exist_ok=True
+            )
+        out = run / ledger.LEDGER
     ledger.write(doc, out)
     print(json.dumps({"path": str(out), "counts": doc["counts"]}, indent=2))
     return 0
@@ -450,6 +494,10 @@ def cmd_validate(args) -> int:
         dry_run=not args.execute,
         baseline=baseline,
     )
+    out = Path(args.out) if args.out else (
+        REPORTS / "validation" / f"{candidate.id}.json"
+    )
+    _write_json(out, result)
     print(json.dumps(result, indent=2))
     if args.execute is False:
         return 0
@@ -473,6 +521,7 @@ def cmd_extract(args) -> int:
         tuple(args.tables or watcher.DEFAULT_TABLES),
         limit=args.limit,
         with_diffs=args.with_diffs,
+        min_weight=args.min_weight,
     )
     print(json.dumps(manifest["tables"], indent=2, sort_keys=True))
     return 0
@@ -525,6 +574,8 @@ def build_parser() -> argparse.ArgumentParser:
     find.add_argument("--out")
     find.add_argument("--limit", type=int)
     find.add_argument("--rules", nargs="*")
+    find.add_argument("--all-rules", action="store_true")
+    find.add_argument("--min-weight", type=int, default=0)
     find.add_argument("--no-evidence", action="store_true")
     find.set_defaults(func=cmd_findings)
 
@@ -544,6 +595,9 @@ def build_parser() -> argparse.ArgumentParser:
     refresh.add_argument("--min-support", type=int, default=20)
     refresh.add_argument("--min-packages", type=int, default=3)
     refresh.add_argument("--benign-sample", type=int, default=0)
+    refresh.add_argument("--min-weight", type=int, default=0)
+    refresh.add_argument("--all-rules", action="store_true")
+    refresh.add_argument("--with-diffs", action="store_true")
     refresh.add_argument("--extract", action="store_true")
     refresh.add_argument("--build-findings", action="store_true")
     refresh.add_argument("--db", default=str(DATA / "watcher.db"))
@@ -566,6 +620,9 @@ def build_parser() -> argparse.ArgumentParser:
         "ledger", help="join candidates to matrix, regression, and coverage"
     )
     ledg.add_argument("--candidates", default="reports/candidates")
+    ledg.add_argument("--validation", default="reports/validation")
+    ledg.add_argument("--runs", default="runs")
+    ledg.add_argument("--publish", action="store_true")
     ledg.add_argument("--out")
     ledg.set_defaults(func=cmd_ledger)
 
@@ -585,6 +642,7 @@ def build_parser() -> argparse.ArgumentParser:
     val.add_argument("--tier", type=int, default=1)
     val.add_argument("--execute", action="store_true")
     val.add_argument("--baseline", default="reports/baseline.json")
+    val.add_argument("--out")
     val.set_defaults(func=cmd_validate)
 
     base = sub.add_parser("baseline", help="measure the unpatched instrument")
@@ -605,6 +663,7 @@ def build_parser() -> argparse.ArgumentParser:
     extract.add_argument("--tables", nargs="*")
     extract.add_argument("--limit", type=int)
     extract.add_argument("--with-diffs", action="store_true")
+    extract.add_argument("--min-weight", type=int)
     extract.set_defaults(func=cmd_extract)
     return parser
 

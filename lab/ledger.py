@@ -90,10 +90,25 @@ def _outcome(doc: dict, matrix: dict, applies: bool) -> str:
     return "stale"
 
 
+def _validation(directory: Path, candidate_id: str) -> dict | None:
+    doc = _load(directory / f"{candidate_id}.json", {})
+    if not doc:
+        return None
+    benign = (doc.get("verdict") or {}).get("benign") or {}
+    return {
+        "tier": doc.get("tier"),
+        "passed": doc.get("passed"),
+        "benign_flag_rate": benign.get("estimate"),
+        "benign_flagged": benign.get("flagged"),
+        "failures": (doc.get("verdict") or {}).get("failures") or [],
+    }
+
+
 def build(
     root: Path,
     *,
     candidates: Path = Path("reports/candidates"),
+    validation: Path = Path("reports/validation"),
 ) -> dict:
     matrix = _matrix(root)
     regression = _regression(root)
@@ -118,6 +133,7 @@ def build(
                 },
                 "regression": regression.get(rule, {"open": 0, "closed": 0}),
                 "coverage_targeted": rule not in untargeted if rule else False,
+                "validation": _validation(validation, doc.get("id", path.stem)),
                 "outcome": _outcome(doc, cell, applies),
             })
     return {

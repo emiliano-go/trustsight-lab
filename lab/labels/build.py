@@ -43,6 +43,29 @@ def merge_weak(rows: list[dict], path) -> list[dict]:
     return rows
 
 
+def merge_findings(rows: list[dict], path) -> list[dict]:
+    """Append real-finding labels: contradictions are weak FPs, signals are
+    real findings that must keep firing."""
+
+    import json
+    from pathlib import Path as _Path
+
+    source = _Path(path)
+    if not source.is_file():
+        return rows
+    for line in source.read_text().splitlines():
+        if not line.strip():
+            continue
+        row = json.loads(line)
+        if row.get("contradiction"):
+            rows.append({**row, "label": "weak_fp"})
+            continue
+        signal = row.get("signal") or {}
+        if signal.get("label") in ("hard_fp", "tp_benign", "tp"):
+            rows.append({**row, "label": signal["label"]})
+    return rows
+
+
 def report_labels(harness_root: Path) -> list[dict]:
     rows = []
     for report in reports.load_reports(harness_root):

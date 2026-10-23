@@ -1,0 +1,8 @@
+{
+  "fp": 5,
+  "predicate": "skip_complete=true",
+  "rule_id": "H064",
+  "status": "needs_template",
+  "support": 5,
+  "tier0_fixture": null
+}

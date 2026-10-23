@@ -70,6 +70,8 @@ def mine(
             if len(hits) < min_support:
                 continue
             fp = sum(1 for row in hits if row["label"] in positives)
+            hard = sum(1 for row in hits if row["label"] == "hard_fp")
+            weak = sum(1 for row in hits if row["label"] == "weak_fp")
             benign = sum(1 for row in hits if row["label"] == "tp_benign")
             packages = sorted({
                 row.get("package", "") for row in hits if row.get("package")
@@ -82,6 +84,8 @@ def mine(
                     "predicate": name,
                     "support": len(hits),
                     "fp": fp,
+                    "hard_fp": hard,
+                    "weak_fp": weak,
                     "tp_benign": benign,
                     "fp_lift": round(fp / base_fp, 3),
                     "precision": round(fp / len(hits), 3),

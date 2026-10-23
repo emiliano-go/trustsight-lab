@@ -55,11 +55,36 @@ def _snapshots(extract_dir: Path) -> dict[str, dict]:
     return {row["package_name"]: row for row in _rows(path)}
 
 
+def _source_changes(row: dict):
+    """Diff-derived source changes, when the extraction kept the diff.
+
+    `source_changes` is not in `fact_json`; it is computed from the diff at
+    analysis time.  Without this, `checksum_only` is always None and C001 can
+    never be mined from the watcher.
+    """
+
+    raw = row.get("raw_diff")
+    if not isinstance(raw, str) or not raw:
+        return None
+    try:
+        from trustsight.differ._sources import extract_urls_from_diff
+
+        change = extract_urls_from_diff(raw)
+    except Exception:  # noqa: BLE001 - absence of evidence is not a new fact
+        return None
+    return {
+        "added_urls": list(getattr(change, "added_urls", ()) or ()),
+        "removed_urls": list(getattr(change, "removed_urls", ()) or ()),
+        "checksum_behavior": str(getattr(change, "checksum_behavior", "") or ""),
+    }
+
+
 def build(
     extract_dir: Path,
     *,
     limit: int | None = None,
     only_rules: tuple[str, ...] = INTERESTING,
+    min_weight: int = 0,
     recompute: bool = True,
     root: Path | None = None,
 ) -> list[dict]:
@@ -82,7 +107,10 @@ def build(
                 fact = row
         for entry in fact.get("score_breakdown") or []:
             rule = entry.get("rule_id", "")
-            if rule not in only_rules:
+            if only_rules and rule not in only_rules:
+                continue
+            weight = int(entry.get("weight") or 0)
+            if weight < min_weight:
                 continue
             finding = {
                 "package": package,
@@ -93,6 +121,8 @@ def build(
                 "new_version": fact.get("new_version"),
                 "final_score": fact.get("final_score"),
                 "config_fingerprint": fact.get("config_fingerprint"),
+                "first_seen": fact.get("first_seen"),
+                "novelty_context": fact.get("novelty_context"),
                 "rule_id": rule,
                 "severity": entry.get("severity", ""),
                 "weight": entry.get("weight"),
@@ -114,7 +144,9 @@ def build(
                         snapshot["pkgbuild_text"],
                         recipe=recipe,
                         files=files,
-                        source_changes=fact.get("source_changes"),
+                        source_changes=(
+                            fact.get("source_changes") or _source_changes(row)
+                        ),
                     )
                 except Exception as exc:  # noqa: BLE001 - a refusal keeps the row
                     finding["evidence_error"] = str(exc)
