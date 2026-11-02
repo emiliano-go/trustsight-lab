@@ -78,6 +78,11 @@ def snapshot_remote(
 
     if shutil.which("ssh") is None:
         raise RuntimeError("ssh is required for a remote snapshot")
+    import re
+    if str(host).startswith("-") or str(container).startswith("-"):
+        raise ValueError("host and container must not begin with '-'")
+    if not re.fullmatch(r"/[A-Za-z0-9._/-]{1,4096}", str(db_path)):
+        raise ValueError("db_path must be an absolute safe path")
     dest.parent.mkdir(parents=True, exist_ok=True)
     script = (
         "import sqlite3,sys;"
