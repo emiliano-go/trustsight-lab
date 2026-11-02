@@ -9,21 +9,25 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           path: trustsight-lab
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: emiliano-go/trustsight
+          ref: 7cdd86f68f5197b2a015a195516d680dfa6f983d
           path: trustsight
-      - uses: actions/checkout@v4
+          persist-credentials: false
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           repository: emiliano-go/trustsight-harness
+          ref: 7eb26bc8bf04bb64883d76d91950785feef026b7
           path: trustsight-harness
-      - uses: astral-sh/setup-uv@v5
-      - run: uv sync --project trustsight
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@e58605a9b6da7c637471fab8847a5e5a6b8df081
+      - run: uv sync --locked --project trustsight
       - run: uv sync --project trustsight-harness
-      - run: uv run --with pytest pytest -q
+      - run: uv run --with pytest --with pyyaml pytest -q
         working-directory: trustsight-lab
       - run: uv run --with ruff ruff check lab tests
         working-directory: trustsight-lab
